@@ -9,7 +9,7 @@
     "start": "next start",
     "lint": "eslint",
     "seed:library": "node scripts/seed-library-items.mjs",
-    "pages:build": "opennextjs-cloudflare build && node scripts/pages-build.mjs",
+    "pages:build": "node scripts/env-diagnostics.mjs && opennextjs-cloudflare build && node scripts/pages-build.mjs",
     "preview": "opennextjs-cloudflare build && opennextjs-cloudflare preview",
     "deploy": "opennextjs-cloudflare build && opennextjs-cloudflare deploy",
     "upload": "opennextjs-cloudflare build && opennextjs-cloudflare upload",
