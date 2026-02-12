@@ -11,17 +11,30 @@ const openNextDir = path.join(projectRoot, ".open-next");
 
 const workerSrc = path.join(openNextDir, "worker.js");
 const workerMapSrc = path.join(openNextDir, "worker.js.map");
-const assetsSrc = path.join(openNextDir, "assets");
 
 const outDir = path.join(projectRoot, ".pages");
 const workerDest = path.join(outDir, "_worker.js");
 const workerMapDest = path.join(outDir, "_worker.js.map");
 
+const requiredPaths = [
+  "assets",
+  "cloudflare",
+  "middleware",
+  "server-functions",
+  ".build",
+];
+
 await rm(outDir, { recursive: true, force: true });
 await mkdir(outDir, { recursive: true });
 
-// Static assets (/_next/static, favicon, etc)
-await cp(assetsSrc, outDir, { recursive: true });
+// Copy all OpenNext runtime dependencies that _worker.js imports.
+for (const relPath of requiredPaths) {
+  const src = path.join(openNextDir, relPath);
+  if (!existsSync(src)) continue;
+
+  const dest = path.join(outDir, relPath);
+  await cp(src, dest, { recursive: true });
+}
 
 // Pages Functions “advanced mode” entrypoint
 await cp(workerSrc, workerDest);
