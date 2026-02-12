@@ -8,6 +8,9 @@ import {
 } from "@/lib/subscription";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
+
 const navItems: Array<{ href: string; label: string }> = [
   { href: "/dashboard", label: "Home" },
   { href: "/dashboard/library", label: "Full Library" },

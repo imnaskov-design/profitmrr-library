@@ -3,6 +3,9 @@ import { redirect } from "next/navigation";
 
 import { getAdminContext } from "@/lib/admin";
 
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
+
 const navItems: Array<{ href: string; label: string }> = [
   { href: "/admin/overview", label: "Overview" },
   { href: "/admin/users", label: "Users (CRM)" },
