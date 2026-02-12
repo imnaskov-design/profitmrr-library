@@ -1,4 +1,4 @@
-import { cp, mkdir, rm, writeFile } from "node:fs/promises";
+import { cp, mkdir, readdir, rm, writeFile } from "node:fs/promises";
 import { existsSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
@@ -16,9 +16,9 @@ const outDir = path.join(projectRoot, ".pages");
 const workerDest = path.join(outDir, "_worker.js");
 const workerMapDest = path.join(outDir, "_worker.js.map");
 const wranglerTomlPath = path.join(projectRoot, "wrangler.toml");
+const assetsDir = path.join(openNextDir, "assets");
 
 const requiredPaths = [
-  "assets",
   "cloudflare",
   "middleware",
   "server-functions",
@@ -35,6 +35,18 @@ for (const relPath of requiredPaths) {
 
   const dest = path.join(outDir, relPath);
   await cp(src, dest, { recursive: true });
+}
+
+// Copy OpenNext static assets into .pages root (not .pages/assets) so they
+// are served at /_next/* and /favicon.ico paths.
+if (existsSync(assetsDir)) {
+  const assetEntries = await readdir(assetsDir);
+  for (const entry of assetEntries) {
+    await cp(path.join(assetsDir, entry), path.join(outDir, entry), {
+      recursive: true,
+    });
+  }
+  console.log(`[pages-build] Copied assets entries: ${assetEntries.join(", ")}`);
 }
 
 // Pages Functions “advanced mode” entrypoint
