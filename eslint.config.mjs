@@ -12,6 +12,12 @@ const eslintConfig = defineConfig([
     "out/**",
     "build/**",
     "next-env.d.ts",
+
+    // OpenNext adapter output (generated)
+    ".open-next/**",
+
+    // Cloudflare Pages output (generated)
+    ".pages/**",
   ]),
 ]);
 

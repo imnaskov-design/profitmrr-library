@@ -1,36 +1,184 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# ProfitMRR Library
 
-## Getting Started
+Production-ready subscription web app that converts Etsy buyers into annual subscribers and gives them a gated member dashboard + admin CRM panel.
 
-First, run the development server:
+**Stack**
+- Next.js (App Router) + TypeScript + Tailwind
+- Supabase (Auth + Postgres + RLS)
+- LemonSqueezy (checkout + subscription webhooks)
+- Cloudflare R2 (private bucket + signed downloads)
+- Cloudflare Pages deploy target (via OpenNext)
+
+## Key flows
+
+1) Landing page → CTA opens email capture modal → checkout is created via [`POST()`](profitmrr-library/src/app/api/checkout/route.ts:14) → redirect to LemonSqueezy.
+2) LemonSqueezy sends webhook → [`POST()`](profitmrr-library/src/app/api/lemonsqueezy/webhook/route.ts:85) verifies signature + updates subscription state in `profiles`.
+3) Member logs in → downloads are gated by `profiles.status`/`current_period_end`.
+4) File download hits [`GET()`](profitmrr-library/src/app/api/download/route.ts:106) → rate limit + signed R2 URL (10 minutes) → redirect.
+
+## Environment variables
+
+Copy [`/.env.example`](profitmrr-library/.env.example:1) to `.env.local`.
+
+Required:
+- `NEXT_PUBLIC_SUPABASE_URL`
+- `NEXT_PUBLIC_SUPABASE_ANON_KEY`
+- `SUPABASE_SERVICE_ROLE_KEY` (server-only)
+- `APP_BASE_URL` (e.g. `http://localhost:3000` or your production URL)
+- `LEMONSQUEEZY_API_KEY`
+- `LEMONSQUEEZY_VARIANT_ID`
+- `LEMONSQUEEZY_WEBHOOK_SECRET`
+- `R2_ACCOUNT_ID`
+- `R2_ACCESS_KEY_ID`
+- `R2_SECRET_ACCESS_KEY`
+- `R2_BUCKET_NAME` (your private “library files” bucket)
+- `EMAIL_PROVIDER_API_KEY` (Resend)
+- `EMAIL_FROM` (verified sender)
+
+Optional:
+- `EMAIL_REPLY_TO`
+- `DOWNLOADS_PER_DAY_LIMIT` (default 50)
+
+## Local development
 
 ```bash
+cd profitmrr-library
+npm install
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+The dev script uses webpack by default (more stable for CSS in this project).
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Supabase (database + RLS)
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+Migrations live in [`/supabase/migrations`](profitmrr-library/supabase/migrations/20260211174000_init.sql:1).
 
-## Learn More
+Apply in order:
+1) [`20260211174000_init.sql`](profitmrr-library/supabase/migrations/20260211174000_init.sql:1)
+2) [`20260212120000_email_campaigns.sql`](profitmrr-library/supabase/migrations/20260212120000_email_campaigns.sql:1)
 
-To learn more about Next.js, take a look at the following resources:
+You can apply via:
+- Supabase SQL Editor (paste the migration files), or
+- Supabase CLI (`supabase db push`) if you prefer a migrations workflow.
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+### Create an admin user
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+1) Register a user in the app.
+2) In Supabase SQL Editor:
 
-## Deploy on Vercel
+```sql
+update public.profiles
+set role = 'admin'
+where email = 'you@example.com';
+```
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+Admin panel is at `/admin`.
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+## LemonSqueezy setup
+
+1) Create an annual subscription product/variant priced at **$99.90/year**.
+2) Set `LEMONSQUEEZY_VARIANT_ID` to that variant.
+3) Create a webhook:
+   - URL: `${APP_BASE_URL}/api/lemonsqueezy/webhook`
+   - Secret: `LEMONSQUEEZY_WEBHOOK_SECRET`
+   - Enable events:
+     - `subscription_created`
+     - `subscription_updated`
+     - `subscription_cancelled`
+     - `subscription_expired`
+     - `subscription_payment_success`
+     - `subscription_payment_failed`
+
+Webhook processing is idempotent via the `webhook_events` table.
+
+## Cloudflare R2 (private library files)
+
+### Create the bucket
+
+Create a **private** bucket for library files (example name: `profitmrr-library-files`).
+
+Set:
+- `R2_ACCOUNT_ID`
+- `R2_BUCKET_NAME`
+- `R2_ACCESS_KEY_ID`
+- `R2_SECRET_ACCESS_KEY`
+
+### Upload files
+
+Upload your ZIP/PDF assets to the bucket. The object **key** becomes `library_items.r2_key`.
+
+Example key (recommended convention):
+
+```
+library/ebooks/my-product.zip
+```
+
+Important:
+- Bucket must stay private.
+- The UI never exposes permanent URLs.
+- Downloads use signed, short-lived URLs generated by [`createSignedR2GetUrl()`](profitmrr-library/src/lib/r2.ts:29).
+
+## Seeding `library_items` from CSV
+
+Sample CSV: [`/data/library_items.sample.csv`](profitmrr-library/data/library_items.sample.csv:1)
+
+Run:
+
+```bash
+npm run seed:library -- data/library_items.sample.csv
+```
+
+Dry-run:
+
+```bash
+npm run seed:library -- data/library_items.sample.csv --dry-run
+```
+
+Seeder script: [`/scripts/seed-library-items.mjs`](profitmrr-library/scripts/seed-library-items.mjs:1)
+
+Notes:
+- Requires `SUPABASE_SERVICE_ROLE_KEY` to bypass RLS.
+- De-dupes by `r2_key` and upserts rows.
+- `tags` supports `|`, `;`, or `,` (quote comma-separated tags).
+
+## Email campaigns (Resend) + unsubscribe
+
+Admin UI:
+- `/admin/email-campaigns` to create campaigns
+- `/admin/email-campaigns/[id]` to edit + test send + “Send now”
+
+Unsubscribe link:
+- Every send includes `/unsubscribe?token=...`
+- Unsubscribe page updates `email_preferences.unsubscribed`
+
+CSV export:
+- `/api/admin/email/export?audience=active|cancelled|expired|all` (excludes unsubscribed)
+
+Operational note:
+- “Send now” caps at 200 sends per run (click again to continue for large lists).
+
+## Cloudflare Pages deployment
+
+This repo uses OpenNext for Cloudflare.
+
+### Build output for Pages
+
+```bash
+npm run pages:build
+```
+
+This produces a deployable output at `.pages` (includes `_worker.js` and static assets).
+
+### Cloudflare Pages settings
+
+In your Cloudflare Pages project:
+- Build command: `npm run pages:build`
+- Output directory: `.pages`
+- Add the env vars from [`/.env.example`](profitmrr-library/.env.example:1)
+
+## Security notes
+
+- Do **not** expose `SUPABASE_SERVICE_ROLE_KEY` client-side.
+- LemonSqueezy webhooks are signature-verified.
+- R2 bucket stays private; only 10-minute signed URLs are issued.
+- Download rate limiting is enforced via `download_logs`.
