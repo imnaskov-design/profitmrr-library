@@ -1,5 +1,6 @@
 {
 	"$schema": "node_modules/wrangler/config-schema.json",
+	"pages_build_output_dir": ".pages",
 	"main": ".open-next/worker.js",
 	"name": "profitmrr-library",
 	"compatibility_date": "2026-02-10",
