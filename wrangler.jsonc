@@ -1,0 +1,7 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "profitmrr-library",
+  "pages_build_output_dir": ".pages",
+  "compatibility_date": "2026-02-12",
+  "compatibility_flags": ["nodejs_compat", "global_fetch_strictly_public"]
+}
