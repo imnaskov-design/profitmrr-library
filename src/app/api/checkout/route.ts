@@ -18,23 +18,37 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "Invalid request." }, { status: 400 });
   }
 
-  const env = getServerEnv();
-
-  const supabase = await createSupabaseServerClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-
-  const customData: Record<string, unknown> = {
-    ...(parsed.data.source ? { source: parsed.data.source } : null),
-    ...(user?.id ? { supabase_user_id: user.id } : null),
-  };
-
   try {
+    const requestUrl = new URL(req.url);
+    let appBaseUrl = `${requestUrl.protocol}//${requestUrl.host}`;
+
+    try {
+      const env = getServerEnv();
+      appBaseUrl = env.APP_BASE_URL.replace(/\/$/, "");
+    } catch {
+      // Fall back to current request origin if APP_BASE_URL is not configured.
+    }
+
+    let supabaseUserId: string | undefined;
+    try {
+      const supabase = await createSupabaseServerClient();
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+      supabaseUserId = user?.id;
+    } catch {
+      // Checkout can still continue for logged-out users.
+    }
+
+    const customData: Record<string, unknown> = {
+      ...(parsed.data.source ? { source: parsed.data.source } : null),
+      ...(supabaseUserId ? { supabase_user_id: supabaseUserId } : null),
+    };
+
     const checkoutUrl = await createLemonSqueezyCheckout({
       email: parsed.data.email,
       name: parsed.data.name,
-      redirectUrl: `${env.APP_BASE_URL.replace(/\/$/, "")}/thanks`,
+      redirectUrl: `${appBaseUrl}/thanks`,
       customData,
     });
 
