@@ -19,7 +19,7 @@ export default function LoginClient({ nextPath }: { nextPath: string }) {
     setError(null);
     setLoading(true);
 
-    const supabase = createSupabaseBrowserClient();
+    const supabase = await createSupabaseBrowserClient();
     const { error } = await supabase.auth.signInWithPassword({
       email,
       password,

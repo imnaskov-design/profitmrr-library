@@ -21,7 +21,7 @@ export default function RegisterPage() {
     setSuccessMessage(null);
     setLoading(true);
 
-    const supabase = createSupabaseBrowserClient();
+    const supabase = await createSupabaseBrowserClient();
     const { data, error } = await supabase.auth.signUp({
       email,
       password,
