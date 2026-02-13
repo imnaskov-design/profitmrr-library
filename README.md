@@ -39,6 +39,22 @@ Optional:
 - `EMAIL_REPLY_TO`
 - `DOWNLOADS_PER_DAY_LIMIT` (default 50)
 
+Cloudflare compatibility aliases (optional):
+- `SUPABASE_URL`, `CF_SUPABASE_URL`, `PUBLIC_SUPABASE_URL`
+- `SUPABASE_ANON_KEY`, `CF_SUPABASE_ANON_KEY`, `PUBLIC_SUPABASE_ANON_KEY`
+- `CF_LEMONSQUEEZY_API_KEY`, `CF_LEMONSQUEEZY_VARIANT_ID`, `CF_LEMONSQUEEZY_WEBHOOK_SECRET`
+
+The runtime env reader resolves values in deterministic order:
+1) `process.env` primary name
+2) `process.env` aliases
+3) Cloudflare request context binding primary name
+4) Cloudflare request context binding aliases
+
+Health diagnostics endpoint (booleans only):
+- `GET /api/health/env`
+- Returns `{ ok, checks, missing }`
+- Never returns secret values; only presence booleans.
+
 ## Local development
 
 ```bash
@@ -175,6 +191,32 @@ In your Cloudflare Pages project:
 - Build command: `npm run pages:build`
 - Output directory: `.pages`
 - Add the env vars from [`/.env.example`](profitmrr-library/.env.example:1)
+
+### Cloudflare release gates (production + preview)
+
+Before accepting any deploy as healthy:
+
+1) Confirm all required secrets exist in **both** environments:
+   - Pages → Settings → Environment variables
+   - Add the same keys under **Production** and **Preview**.
+2) Deploy the latest `main` commit.
+3) Validate env presence endpoint:
+   - `GET https://<your-preview-url>/api/health/env`
+   - `GET https://<your-production-url>/api/health/env`
+   - Expected: HTTP `200` and `{"ok":true,...}`
+4) Validate checkout creation endpoint:
+   - `POST /api/checkout` with a real test email
+   - Expected: HTTP `200` and `checkout_url` in response JSON
+5) Validate webhook signature path:
+   - Ensure LemonSqueezy webhook URL is `${APP_BASE_URL}/api/lemonsqueezy/webhook`
+   - Trigger a test event from LemonSqueezy and expect HTTP `200`.
+
+Windows `curl` example:
+
+```bash
+curl -i https://<your-url>/api/health/env
+curl -i -X POST https://<your-url>/api/checkout -H "content-type: application/json" -d "{\"email\":\"you@example.com\",\"source\":\"cf_release_gate\"}"
+```
 
 ## Security notes
 
