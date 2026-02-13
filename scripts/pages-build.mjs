@@ -15,6 +15,7 @@ const workerMapSrc = path.join(openNextDir, "worker.js.map");
 const outDir = path.join(projectRoot, ".pages");
 const workerDest = path.join(outDir, "_worker.js");
 const workerMapDest = path.join(outDir, "_worker.js.map");
+const routesPath = path.join(outDir, "_routes.json");
 const wranglerTomlPath = path.join(projectRoot, "wrangler.toml");
 const assetsDir = path.join(openNextDir, "assets");
 
@@ -55,6 +56,16 @@ if (existsSync(workerMapSrc)) {
   await cp(workerMapSrc, workerMapDest);
 }
 
+// Ensure Pages serves static files directly (especially /_next/static/*),
+// while all app routes continue to hit the worker.
+const routesJson = {
+  version: 1,
+  include: ["/*"],
+  exclude: ["/_next/static/*", "/*.*"],
+};
+
+await writeFile(routesPath, JSON.stringify(routesJson, null, 2), "utf8");
+
 // Generate wrangler.toml only at build time so Cloudflare upload step can use
 // node compatibility flags without breaking build-time env injection.
 const wranglerToml = `name = "profitmrr-library"
@@ -67,4 +78,5 @@ await writeFile(wranglerTomlPath, wranglerToml, "utf8");
 
 console.log(`[pages-build] Output ready: ${outDir}`);
 console.log(`[pages-build] Generated runtime config: ${wranglerTomlPath}`);
+console.log(`[pages-build] Generated routes manifest: ${routesPath}`);
 
