@@ -60,10 +60,17 @@ export function getSupabaseAdminEnv() {
 export function getLemonSqueezyEnv() {
   if (lemonCached) return lemonCached;
 
+  const apiKey =
+    process.env.LEMONSQUEEZY_API_KEY ?? process.env.CF_LEMONSQUEEZY_API_KEY;
+  const variantId =
+    process.env.LEMONSQUEEZY_VARIANT_ID ?? process.env.CF_LEMONSQUEEZY_VARIANT_ID;
+  const webhookSecret =
+    process.env.LEMONSQUEEZY_WEBHOOK_SECRET ?? process.env.CF_LEMONSQUEEZY_WEBHOOK_SECRET;
+
   lemonCached = lemonSqueezyEnvSchema.parse({
-    LEMONSQUEEZY_API_KEY: process.env.LEMONSQUEEZY_API_KEY,
-    LEMONSQUEEZY_VARIANT_ID: process.env.LEMONSQUEEZY_VARIANT_ID,
-    LEMONSQUEEZY_WEBHOOK_SECRET: process.env.LEMONSQUEEZY_WEBHOOK_SECRET,
+    LEMONSQUEEZY_API_KEY: apiKey,
+    LEMONSQUEEZY_VARIANT_ID: variantId,
+    LEMONSQUEEZY_WEBHOOK_SECRET: webhookSecret,
   });
 
   return lemonCached;
