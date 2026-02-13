@@ -16,7 +16,6 @@ const outDir = path.join(projectRoot, ".pages");
 const workerDest = path.join(outDir, "_worker.js");
 const workerMapDest = path.join(outDir, "_worker.js.map");
 const routesPath = path.join(outDir, "_routes.json");
-const wranglerTomlPath = path.join(projectRoot, "wrangler.toml");
 const assetsDir = path.join(openNextDir, "assets");
 
 const requiredPaths = [
@@ -66,17 +65,6 @@ const routesJson = {
 
 await writeFile(routesPath, JSON.stringify(routesJson, null, 2), "utf8");
 
-// Generate wrangler.toml only at build time so Cloudflare upload step can use
-// node compatibility flags without breaking build-time env injection.
-const wranglerToml = `name = "profitmrr-library"
-pages_build_output_dir = ".pages"
-compatibility_date = "2026-02-12"
-compatibility_flags = ["nodejs_compat", "global_fetch_strictly_public"]
-`;
-
-await writeFile(wranglerTomlPath, wranglerToml, "utf8");
-
 console.log(`[pages-build] Output ready: ${outDir}`);
-console.log(`[pages-build] Generated runtime config: ${wranglerTomlPath}`);
 console.log(`[pages-build] Generated routes manifest: ${routesPath}`);
 
