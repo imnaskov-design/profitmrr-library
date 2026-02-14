@@ -50,5 +50,8 @@ next-env.d.ts
 # OpenNext
 .open-next
 
+# Supabase CLI local temp state (do not commit)
+supabase/.temp/
+
 # Cloudflare Pages build output
 .pages

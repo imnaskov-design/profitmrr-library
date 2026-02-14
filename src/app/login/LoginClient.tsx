@@ -9,8 +9,9 @@ import { createSupabaseBrowserClient } from "@/lib/supabase/browser";
 export default function LoginClient({ nextPath }: { nextPath: string }) {
   const router = useRouter();
 
-  const [email, setEmail] = useState("");
+  const [identifier, setIdentifier] = useState("");
   const [password, setPassword] = useState("");
+  const [remember, setRemember] = useState(true);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -19,18 +20,25 @@ export default function LoginClient({ nextPath }: { nextPath: string }) {
     setError(null);
     setLoading(true);
 
-    const supabase = await createSupabaseBrowserClient();
-    const { error } = await supabase.auth.signInWithPassword({
-      email,
-      password,
+    // Use a server route to support username-or-email login without loosening RLS.
+    const res = await fetch("/api/auth/login", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ identifier, password, remember }),
     });
 
-    setLoading(false);
-
-    if (error) {
-      setError(error.message);
+    if (!res.ok) {
+      const data = (await res.json().catch(() => null)) as { error?: string } | null;
+      setLoading(false);
+      setError(data?.error ?? "Unable to log in.");
       return;
     }
+
+    // Ensure the browser client exists so subsequent navigation has a hydrated client.
+    // (Session is stored in cookies via SSR helpers.)
+    await createSupabaseBrowserClient();
+
+    setLoading(false);
 
     router.replace(nextPath);
     router.refresh();
@@ -49,15 +57,15 @@ export default function LoginClient({ nextPath }: { nextPath: string }) {
 
           <form onSubmit={onSubmit} className="flex flex-col gap-4">
             <label className="flex flex-col gap-1">
-              <span className="text-sm font-medium text-zinc-800">Email</span>
+              <span className="text-sm font-medium text-zinc-800">Username or email</span>
               <input
-                type="email"
+                type="text"
                 required
-                autoComplete="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
+                autoComplete="username"
+                value={identifier}
+                onChange={(e) => setIdentifier(e.target.value)}
                 className="h-11 rounded-xl border border-zinc-200 px-3 text-zinc-900 outline-none ring-zinc-900/10 focus:ring-4"
-                placeholder="you@example.com"
+                placeholder="test"
               />
             </label>
 
@@ -79,6 +87,16 @@ export default function LoginClient({ nextPath }: { nextPath: string }) {
                 {error}
               </div>
             ) : null}
+
+            <label className="flex items-center gap-2 text-sm text-zinc-700">
+              <input
+                type="checkbox"
+                checked={remember}
+                onChange={(e) => setRemember(e.target.checked)}
+                className="h-4 w-4 rounded border border-zinc-300"
+              />
+              Remember me
+            </label>
 
             <button
               type="submit"

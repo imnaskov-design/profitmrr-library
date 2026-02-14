@@ -90,6 +90,18 @@ where email = 'you@example.com';
 
 Admin panel is at `/admin`.
 
+### Username login + Remember me
+
+This app supports logging in with **username or email**.
+
+- The login form posts to [`POST()`](profitmrr-library/src/app/api/auth/login/route.ts:52), which:
+  - Resolves username → email using the server-side admin client (keeps RLS intact)
+  - Signs in via Supabase Auth
+  - Applies the **Remember me** preference by setting a `pmrr_remember` cookie
+- Middleware reads `pmrr_remember` and adjusts Supabase auth cookie persistence accordingly (session-only vs persistent) in [`middleware()`](profitmrr-library/src/middleware.ts:8).
+
+Usernames live in `public.profiles.username` (unique, lowercase). Schema is added by migration [`20260214001721_add_profiles_username.sql`](profitmrr-library/supabase/migrations/20260214001721_add_profiles_username.sql:1).
+
 ## LemonSqueezy setup
 
 1) Create an annual subscription product/variant priced at **$99.90/year**.

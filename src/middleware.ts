@@ -3,6 +3,8 @@ import { NextResponse, type NextRequest } from "next/server";
 
 import { getPublicEnv } from "@/lib/env/public";
 
+const REMEMBER_COOKIE = "pmrr_remember";
+
 export async function middleware(request: NextRequest) {
   // Don’t block rendering if the project is not configured yet.
   // Once env vars are present, we automatically get session refresh.
@@ -19,6 +21,8 @@ export async function middleware(request: NextRequest) {
     },
   });
 
+  const remember = request.cookies.get(REMEMBER_COOKIE)?.value !== "0";
+
   const supabase = createServerClient(
     env.NEXT_PUBLIC_SUPABASE_URL,
     env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
@@ -29,7 +33,20 @@ export async function middleware(request: NextRequest) {
         },
         setAll(cookiesToSet) {
           cookiesToSet.forEach(({ name, value, options }) => {
-            response.cookies.set(name, value, options);
+            // If remember-me is disabled, keep auth cookies as session cookies.
+            // We do this by removing persistence attributes (Expires/Max-Age)
+            // for non-delete cookies.
+            let nextOptions = options;
+            if (!remember) {
+              const isDelete = typeof options.maxAge === "number" && options.maxAge === 0;
+              if (!isDelete) {
+                nextOptions = { ...options };
+                delete nextOptions.expires;
+                delete nextOptions.maxAge;
+              }
+            }
+
+            response.cookies.set(name, value, nextOptions);
           });
         },
       },
