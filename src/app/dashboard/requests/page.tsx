@@ -3,15 +3,26 @@ import { redirect } from "next/navigation";
 
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
+
 export default async function RequestsVotingPage() {
   const supabase = await createSupabaseServerClient();
+  // Prefer getSession() (cookie-based, no network) and fall back to getUser()
+  // to avoid false logouts if the Auth API is temporarily unreachable.
   const {
-    data: { user },
-  } = await supabase.auth.getUser();
+    data: { session },
+  } = await supabase.auth.getSession();
 
+  let user = session?.user ?? null;
   if (!user) {
-    redirect("/login?next=/dashboard/requests");
+    const {
+      data: { user: verifiedUser },
+    } = await supabase.auth.getUser();
+    user = verifiedUser ?? null;
   }
+
+  if (!user) redirect("/login?next=/dashboard/requests");
 
   const { data: requests } = await supabase
     .from("requests")
@@ -38,9 +49,19 @@ export default async function RequestsVotingPage() {
   async function createRequest(formData: FormData) {
     "use server";
     const supabase = await createSupabaseServerClient();
+
     const {
-      data: { user },
-    } = await supabase.auth.getUser();
+      data: { session },
+    } = await supabase.auth.getSession();
+
+    let user = session?.user ?? null;
+    if (!user) {
+      const {
+        data: { user: verifiedUser },
+      } = await supabase.auth.getUser();
+      user = verifiedUser ?? null;
+    }
+
     if (!user) redirect("/login?next=/dashboard/requests");
 
     const title = String(formData.get("title") ?? "").trim();
@@ -59,9 +80,19 @@ export default async function RequestsVotingPage() {
   async function toggleVote(formData: FormData) {
     "use server";
     const supabase = await createSupabaseServerClient();
+
     const {
-      data: { user },
-    } = await supabase.auth.getUser();
+      data: { session },
+    } = await supabase.auth.getSession();
+
+    let user = session?.user ?? null;
+    if (!user) {
+      const {
+        data: { user: verifiedUser },
+      } = await supabase.auth.getUser();
+      user = verifiedUser ?? null;
+    }
+
     if (!user) redirect("/login?next=/dashboard/requests");
 
     const requestId = String(formData.get("request_id") ?? "");
