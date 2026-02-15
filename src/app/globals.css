@@ -1,26 +1,235 @@
 @import "tailwindcss";
 
+/* ============================================
+   CSS Custom Properties - Design Tokens
+   ============================================ */
 :root {
+  /* Background colors */
   --background: #ffffff;
-  --foreground: #171717;
+  --foreground: #18181b;
+  
+  /* Surface colors - Zinc scale */
+  --surface-50: #fafafa;
+  --surface-100: #f4f4f5;
+  --surface-200: #e4e4e7;
+  --surface-300: #d4d4d8;
+  --surface-400: #a1a1aa;
+  --surface-500: #71717a;
+  --surface-600: #52525b;
+  --surface-700: #3f3f46;
+  --surface-800: #27272a;
+  --surface-900: #18181b;
+  --surface-950: #09090b;
+  
+  /* Accent colors - Indigo */
+  --accent-50: #eef2ff;
+  --accent-100: #e0e7ff;
+  --accent-200: #c7d2fe;
+  --accent-300: #a5b4fc;
+  --accent-400: #818cf8;
+  --accent-500: #6366f1;
+  --accent-600: #4f46e5;
+  --accent-700: #4338ca;
+  --accent-800: #3730a3;
+  --accent-900: #312e81;
+  
+  /* Glass effect colors */
+  --glass-white: rgba(255, 255, 255, 0.7);
+  --glass-white-light: rgba(255, 255, 255, 0.5);
+  --glass-white-lighter: rgba(255, 255, 255, 0.3);
+  --glass-border: rgba(255, 255, 255, 0.2);
+  --glass-shadow: rgba(0, 0, 0, 0.1);
+  
+  /* Typography */
+  --font-sans: var(--font-geist-sans), system-ui, -apple-system, sans-serif;
+  --font-mono: var(--font-geist-mono), monospace;
+  
+  /* Transitions */
+  --transition-fast: 150ms cubic-bezier(0.4, 0, 0.2, 1);
+  --transition-base: 200ms cubic-bezier(0.4, 0, 0.2, 1);
+  --transition-slow: 300ms cubic-bezier(0.4, 0, 0.2, 1);
+  --transition-smooth: cubic-bezier(0.4, 0, 0.2, 1);
+  
+  /* Border radius */
+  --radius-sm: 0.5rem;
+  --radius-md: 0.75rem;
+  --radius-lg: 1rem;
+  --radius-xl: 1.25rem;
+  --radius-2xl: 1.5rem;
+  --radius-full: 9999px;
 }
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
-
+/* Dark mode variables (if needed in future) */
 @media (prefers-color-scheme: dark) {
   :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+    --background: #09090b;
+    --foreground: #fafafa;
+    --glass-white: rgba(9, 9, 11, 0.7);
+    --glass-white-light: rgba(9, 9, 11, 0.5);
+    --glass-white-lighter: rgba(9, 9, 11, 0.3);
+    --glass-border: rgba(255, 255, 255, 0.08);
+    --glass-shadow: rgba(0, 0, 0, 0.3);
   }
 }
 
+/* ============================================
+   Base Styles
+   ============================================ */
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Custom scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--surface-300);
+  border-radius: var(--radius-full);
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--surface-400);
+}
+
+/* ============================================
+   Animation Utilities
+   ============================================ */
+/* Stagger animation delays */
+.stagger-1 { animation-delay: 50ms; }
+.stagger-2 { animation-delay: 100ms; }
+.stagger-3 { animation-delay: 150ms; }
+.stagger-4 { animation-delay: 200ms; }
+.stagger-5 { animation-delay: 250ms; }
+.stagger-6 { animation-delay: 300ms; }
+.stagger-7 { animation-delay: 350ms; }
+.stagger-8 { animation-delay: 400ms; }
+
+/* Initial state for animations */
+.animate-on-load {
+  opacity: 0;
+  animation: fadeInUp 0.5s ease-out forwards;
+}
+
+/* ============================================
+   Glassmorphism Utilities
+   ============================================ */
+.glass {
+  background: var(--glass-white);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid var(--glass-border);
+  box-shadow: 0 8px 32px var(--glass-shadow);
+}
+
+.glass-sm {
+  background: var(--glass-white-light);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  border: 1px solid var(--glass-border);
+  box-shadow: 0 4px 16px var(--glass-shadow);
+}
+
+.glass-lg {
+  background: var(--glass-white);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid var(--glass-border);
+  box-shadow: 0 16px 48px var(--glass-shadow);
+}
+
+.glass-solid {
+  background: rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid var(--surface-200);
+  box-shadow: 0 8px 32px var(--glass-shadow);
+}
+
+/* ============================================
+   Gradient Utilities
+   ============================================ */
+.gradient-primary {
+  background: linear-gradient(135deg, var(--accent-500) 0%, var(--accent-600) 50%, #8b5cf6 100%);
+}
+
+.gradient-hero {
+  background: 
+    radial-gradient(ellipse 80% 50% at 50% -20%, var(--accent-100), transparent),
+    radial-gradient(ellipse 60% 40% at 80% 60%, #ede9fe, transparent),
+    linear-gradient(to bottom, var(--surface-50), var(--background));
+}
+
+.gradient-card {
+  background: linear-gradient(135deg, rgba(255,255,255,0.9) 0%, rgba(255,255,255,0.7) 100%);
+}
+
+/* ============================================
+   Hover Effects
+   ============================================ */
+.hover-lift {
+  transition: transform var(--transition-base), box-shadow var(--transition-base);
+}
+
+.hover-lift:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.15);
+}
+
+.hover-glow {
+  transition: box-shadow var(--transition-base);
+}
+
+.hover-glow:hover {
+  box-shadow: 0 0 20px rgba(99, 102, 241, 0.4);
+}
+
+/* ============================================
+   Focus States
+   ============================================ */
+input:focus,
+select:focus,
+textarea:focus,
+button:focus-visible {
+  outline: none;
+}
+
+/* ============================================
+   Selection
+   ============================================ */
+::selection {
+  background: var(--accent-200);
+  color: var(--accent-900);
+}
+
+/* ============================================
+   Reduced Motion
+   ============================================ */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+/* ============================================
+   Print Styles
+   ============================================ */
+@media print {
+  .no-print {
+    display: none !important;
+  }
 }

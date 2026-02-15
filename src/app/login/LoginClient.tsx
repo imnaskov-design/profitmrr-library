@@ -5,6 +5,9 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 
 import { createSupabaseBrowserClient } from "@/lib/supabase/browser";
+import { GlassCard } from "@/components/ui/GlassCard";
+import { GlassButton } from "@/components/ui/GlassButton";
+import { AnimatedInput } from "@/components/ui/AnimatedInput";
 
 export default function LoginClient({ nextPath }: { nextPath: string }) {
   const router = useRouter();
@@ -45,72 +48,98 @@ export default function LoginClient({ nextPath }: { nextPath: string }) {
   }
 
   return (
-    <div className="min-h-screen bg-zinc-50">
-      <div className="mx-auto flex w-full max-w-md flex-col gap-6 px-4 py-16">
-        <div className="rounded-2xl border border-zinc-200 bg-white p-6 shadow-sm">
-          <div className="mb-6">
-            <h1 className="text-2xl font-semibold tracking-tight text-zinc-900">Log in</h1>
-            <p className="mt-1 text-sm text-zinc-600">
-              Access your ProfitMRR Library member dashboard.
-            </p>
-          </div>
+    <div className="min-h-screen bg-gradient-to-br from-zinc-50 via-white to-zinc-50">
+      {/* Animated background */}
+      <div className="fixed inset-0 -z-10 overflow-hidden">
+        <div className="absolute -top-[40%] -left-[20%] h-[80%] w-[60%] rounded-full bg-indigo-100/50 blur-3xl animate-pulse" />
+        <div className="absolute top-[20%] -right-[10%] h-[50%] w-[40%] rounded-full bg-violet-100/50 blur-3xl animate-pulse" style={{ animationDelay: "1s" }} />
+      </div>
 
-          <form onSubmit={onSubmit} className="flex flex-col gap-4">
-            <label className="flex flex-col gap-1">
-              <span className="text-sm font-medium text-zinc-800">Username or email</span>
-              <input
+      <div className="mx-auto flex w-full max-w-md flex-col gap-6 px-4 py-16">
+        {/* Logo */}
+        <div className="text-center">
+          <Link href="/" className="inline-flex items-center gap-2 text-xl font-bold">
+            <span className="bg-gradient-to-r from-indigo-600 to-violet-600 bg-clip-text text-transparent">
+              ProfitMRR
+            </span>
+            <span className="text-zinc-400">Library</span>
+          </Link>
+        </div>
+
+        <GlassCard padding="lg" className="relative overflow-hidden">
+          {/* Decorative gradient */}
+          <div className="absolute -top-20 -left-20 h-40 w-40 rounded-full bg-indigo-200/30 blur-3xl" />
+          <div className="absolute -bottom-20 -right-20 h-40 w-40 rounded-full bg-violet-200/30 blur-3xl" />
+          
+          <div className="relative">
+            <div className="mb-6">
+              <h1 className="text-2xl font-bold tracking-tight text-zinc-900">Welcome back</h1>
+              <p className="mt-1 text-sm text-zinc-500">
+                Log in to access your member dashboard.
+              </p>
+            </div>
+
+            <form onSubmit={onSubmit} className="flex flex-col gap-4">
+              <AnimatedInput
+                label="Username or email"
                 type="text"
                 required
                 autoComplete="username"
                 value={identifier}
                 onChange={(e) => setIdentifier(e.target.value)}
-                className="h-11 rounded-xl border border-zinc-200 px-3 text-zinc-900 outline-none ring-zinc-900/10 focus:ring-4"
-                placeholder="test"
+                icon={
+                  <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                  </svg>
+                }
               />
-            </label>
 
-            <label className="flex flex-col gap-1">
-              <span className="text-sm font-medium text-zinc-800">Password</span>
-              <input
+              <AnimatedInput
+                label="Password"
                 type="password"
                 required
                 autoComplete="current-password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                className="h-11 rounded-xl border border-zinc-200 px-3 text-zinc-900 outline-none ring-zinc-900/10 focus:ring-4"
-                placeholder="••••••••"
+                icon={
+                  <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 10-10V002 2zm7a4 4 0 00-8 0v4h8z" />
+                  </svg>
+                }
               />
-            </label>
 
-            {error ? (
-              <div className="rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
-                {error}
-              </div>
-            ) : null}
+              {error ? (
+                <div className="rounded-xl border border-red-200/50 bg-red-50/80 px-3 py-2 text-sm text-red-600 backdrop-blur-sm">
+                  {error}
+                </div>
+              ) : null}
 
-            <label className="flex items-center gap-2 text-sm text-zinc-700">
-              <input
-                type="checkbox"
-                checked={remember}
-                onChange={(e) => setRemember(e.target.checked)}
-                className="h-4 w-4 rounded border border-zinc-300"
-              />
-              Remember me
-            </label>
+              <label className="flex items-center gap-2 text-sm text-zinc-600">
+                <input
+                  type="checkbox"
+                  checked={remember}
+                  onChange={(e) => setRemember(e.target.checked)}
+                  className="h-4 w-4 rounded border-zinc-300 text-indigo-600 focus:ring-indigo-500/20"
+                />
+                Remember me
+              </label>
 
-            <button
-              type="submit"
-              disabled={loading}
-              className="inline-flex h-11 items-center justify-center rounded-xl bg-zinc-900 px-4 text-sm font-medium text-white shadow-sm transition hover:bg-zinc-800 disabled:cursor-not-allowed disabled:opacity-60"
-            >
-              {loading ? "Logging in…" : "Log in"}
-            </button>
-          </form>
-        </div>
+              <GlassButton
+                type="submit"
+                loading={loading}
+                variant="primary"
+                size="lg"
+                className="w-full"
+              >
+                Log in
+              </GlassButton>
+            </form>
+          </div>
+        </GlassCard>
 
-        <p className="text-center text-sm text-zinc-600">
-          Don’t have an account?{" "}
-          <Link className="font-medium text-zinc-900 underline" href="/register">
+        <p className="text-center text-sm text-zinc-500">
+          Don't have an account?{" "}
+          <Link className="font-semibold text-indigo-600 transition-colors hover:text-indigo-700" href="/register">
             Create one
           </Link>
           .
@@ -119,4 +148,3 @@ export default function LoginClient({ nextPath }: { nextPath: string }) {
     </div>
   );
 }
-
