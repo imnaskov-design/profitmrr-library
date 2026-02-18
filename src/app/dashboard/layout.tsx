@@ -18,6 +18,7 @@ const mainNavItems: Array<{
   { href: "/dashboard/starter-packs", label: "Starter Packs", icon: "package_2" },
   { href: "/dashboard/training", label: "Training Hub", icon: "school" },
   { href: "/dashboard/downloads", label: "My Downloads", icon: "download" },
+  { href: "/dashboard/referrals", label: "Referral Program", icon: "share" },
 ];
 
 const accountNavItems: Array<{ href: string; label: string; icon: string }> = [
