@@ -1,3 +1,5 @@
+import { LandingHtmlBridge } from "@/components/LandingHtmlBridge";
+
 const LANDING_PAGE_HTML = String.raw`<nav class="fixed top-0 w-full z-50 glass-card border-b border-white/5">
 <div class="max-w-7xl mx-auto px-6 h-20 flex items-center justify-between">
 <div class="flex items-center gap-3">
@@ -13,8 +15,8 @@ const LANDING_PAGE_HTML = String.raw`<nav class="fixed top-0 w-full z-50 glass-c
 <a class="text-sm font-semibold text-white/70 hover:text-primary transition-colors" href="#">Pricing</a>
 </div>
 <div class="flex items-center gap-4">
-<button class="hidden sm:block text-sm font-bold text-white px-4 py-2 hover:text-primary transition-colors">Login</button>
-<button class="bg-primary hover:bg-primary/90 text-background-dark px-6 py-2.5 rounded-lg text-sm font-bold transition-all gold-glow">
+<a href="/login" class="hidden sm:block text-sm font-bold text-white px-4 py-2 hover:text-primary transition-colors">Login</a>
+<button data-checkout-cta="nav" class="bg-primary hover:bg-primary/90 text-background-dark px-6 py-2.5 rounded-lg text-sm font-bold transition-all gold-glow">
                 Join Now
             </button>
 </div>
@@ -35,7 +37,7 @@ const LANDING_PAGE_HTML = String.raw`<nav class="fixed top-0 w-full z-50 glass-c
                 Skip the creation process. Download high-converting digital assets, rebrand them as your own, and keep 100% of every sale you make.
             </p>
 <div class="flex flex-col sm:flex-row gap-4">
-<button class="bg-primary text-background-dark px-8 py-5 rounded-xl text-lg font-bold transition-all hover:scale-[1.02] gold-glow flex items-center justify-center gap-3">
+<button data-checkout-cta="hero" class="bg-primary text-background-dark px-8 py-5 rounded-xl text-lg font-bold transition-all hover:scale-[1.02] gold-glow flex items-center justify-center gap-3">
 <span>Access Full Products Library</span>
 <span class="material-symbols-outlined">arrow_forward</span>
 </button>
@@ -424,7 +426,7 @@ const LANDING_PAGE_HTML = String.raw`<nav class="fixed top-0 w-full z-50 glass-c
                 Stop trading time for money. Build a scalable digital empire with 900+ products ready for you to resell right now.
             </p>
 <div class="flex flex-col sm:flex-row gap-4 justify-center pt-4">
-<button class="bg-background-dark text-white px-12 py-6 rounded-2xl text-xl font-black transition-all hover:scale-105 shadow-2xl flex items-center justify-center gap-3">
+<button data-checkout-cta="final" class="bg-background-dark text-white px-12 py-6 rounded-2xl text-xl font-black transition-all hover:scale-105 shadow-2xl flex items-center justify-center gap-3">
                     Get Instant Access Now
                     <span class="material-symbols-outlined">bolt</span>
 </button>
@@ -496,9 +498,12 @@ const LANDING_PAGE_HTML = String.raw`<nav class="fixed top-0 w-full z-50 glass-c
 
 export default function HomePage() {
   return (
-    <div
-      className="min-h-screen bg-background-dark font-display text-white"
-      dangerouslySetInnerHTML={{ __html: LANDING_PAGE_HTML }}
-    />
+    <>
+      <div
+        className="min-h-screen bg-background-dark font-display text-white"
+        dangerouslySetInnerHTML={{ __html: LANDING_PAGE_HTML }}
+      />
+      <LandingHtmlBridge source="landing" />
+    </>
   );
 }

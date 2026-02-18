@@ -16,10 +16,24 @@ export function EmailCaptureCheckoutCta({
   source,
 }: Props) {
   const [open, setOpen] = useState(false);
+  const buttonRef = useRef<HTMLButtonElement | null>(null);
+
+  useEffect(() => {
+    function onBridge(event: Event) {
+      const customEvent = event as CustomEvent<{ source?: string }>;
+      const nextSource = customEvent.detail?.source;
+
+      if (nextSource && source && nextSource !== source) return;
+      buttonRef.current?.click();
+    }
+
+    window.addEventListener("profitmrr:checkout-bridge", onBridge as EventListener);
+    return () => window.removeEventListener("profitmrr:checkout-bridge", onBridge as EventListener);
+  }, [source]);
 
   return (
     <>
-      <button type="button" onClick={() => setOpen(true)} className={buttonClassName}>
+      <button ref={buttonRef} type="button" onClick={() => setOpen(true)} className={buttonClassName}>
         {buttonLabel}
       </button>
       {open ? (
