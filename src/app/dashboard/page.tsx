@@ -1,14 +1,6 @@
 import Link from "next/link";
 
-import {
-  getSubscriptionSummary,
-  normalizeSubscriptionStatus,
-} from "@/lib/subscription";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
-import { GlassCard } from "@/components/ui/GlassCard";
-import { GlassButton } from "@/components/ui/GlassButton";
-import { StatCard } from "@/components/ui/StatCard";
-import { StaggerReveal, Reveal } from "@/components/ui/StaggerReveal";
 
 export default async function DashboardHomePage() {
   const supabase = await createSupabaseServerClient();
@@ -18,24 +10,11 @@ export default async function DashboardHomePage() {
 
   const userId = user?.id;
 
-  const { data: profile } = userId
-    ? await supabase
-        .from("profiles")
-        .select("status, current_period_end")
-        .eq("user_id", userId)
-        .maybeSingle()
-    : { data: null };
-
-  const summary = getSubscriptionSummary({
-    status: normalizeSubscriptionStatus(profile?.status),
-    currentPeriodEnd: profile?.current_period_end ?? null,
-  });
-
   const [
     { count: totalProducts },
     { count: newThisMonth },
     { count: yourDownloads },
-    { data: newItems },
+    { data: newItemsRaw },
   ] = userId
     ? await Promise.all([
         supabase.from("library_items").select("id", { count: "exact", head: true }),
@@ -52,7 +31,7 @@ export default async function DashboardHomePage() {
           .select("id, title, category, description")
           .eq("is_new", true)
           .order("created_at", { ascending: false })
-          .limit(4),
+          .limit(2),
       ])
     : ([
         { count: 0 },
@@ -61,179 +40,189 @@ export default async function DashboardHomePage() {
         { data: [] },
       ] as const);
 
+  const fallbackImages = [
+    "https://lh3.googleusercontent.com/aida-public/AB6AXuAhlFw32ysjW8gJ-_8cK-6nqqY1RVoioJGVudPH5VSdW2G8ylsWm1PQebmR2ExzwPVdNzvh3ZT0KrhwGhi2YhpaXsoilphesNkGMS-emyUdOFual7nuu-5YL3w2rE105VLGEt6k_4krKU2Z-HhM7S379CuQg4oo8XM8jT9eV_ZGnbT3-GQAV_tTihCEoIcvaDbR9nofLYS2N5VT0wR21b8caC-b8bTODXNSeOcfI13pgTpRiupFPUywlWCBAvix3HcmnSiJoDDfkg",
+    "https://lh3.googleusercontent.com/aida-public/AB6AXuD25huSL4v1j8pjE0YocysTTCYOF7mcXQrreD562MpjO0PsLVdEGZgYEpppsg5q6-RpNDeCbabumSRqAJg0s8FLlqJrfiUSjz5OuGSw5NJxRZLmf9TzqBw_B--KhhKYB4h1KU86p-GrABztmzOjw-irq-2RI-wBTYJHuRB_Hq2UbDjlb_euSebOhGkv7QkRypzCWUODT_qU2yB3A3FIm2WN6jPtnpxrzfXweV0OEre6VEBTwWft2pBelCMWctzbqEACgBQaxfr2SA",
+  ];
+
+  const newItemsSource = newItemsRaw ?? [];
+
+  const newItems = newItemsSource.map((item, index) => ({
+    ...item,
+    imageUrl: fallbackImages[index % fallbackImages.length],
+  }));
+
   return (
-    <div className="space-y-6">
-      {/* Welcome Header */}
-      <Reveal delay={0}>
-        <div className="flex flex-col gap-2">
-          <h1 className="text-2xl font-bold tracking-tight text-zinc-900">
-            Welcome back
-          </h1>
-          <p className="text-sm text-zinc-500">
-            Signed in as{" "}
-            <span className="font-medium text-zinc-700">
-              {user?.email ?? "(no email)"}
-            </span>
-          </p>
-          <p className="text-sm text-zinc-500">
-            Subscription: <span className="font-semibold text-zinc-900">{summary.title}</span>
-            {summary.detail ? <span className="text-zinc-400"> — {summary.detail}</span> : null}
-          </p>
+    <div className="grid grid-cols-1 gap-8 lg:grid-cols-3">
+      <div className="space-y-8 lg:col-span-2">
+        <header className="mb-1 flex flex-col gap-6 md:flex-row md:items-center md:justify-between">
+          <div>
+            <div className="mb-2 flex items-center gap-3">
+              <h2 className="text-4xl font-900 tracking-tight text-white">Welcome back</h2>
+              <span className="flex items-center gap-1 rounded-full border border-primary/30 bg-primary/10 px-3 py-1 text-[10px] font-black uppercase tracking-widest text-primary">
+                <span className="size-1.5 rounded-full bg-primary"></span>
+                Active
+              </span>
+            </div>
+            <p className="font-medium text-white/40">
+              Signed in as <span className="font-bold text-white/80">{user?.email ?? "(no email)"}</span>
+            </p>
+          </div>
+        </header>
+
+        <div className="group relative overflow-hidden rounded-3xl glass-card p-8 gold-border-glow">
+          <div className="absolute -right-12 -top-12 size-48 rounded-full bg-primary/10 blur-3xl transition-all group-hover:bg-primary/20"></div>
+          <div className="relative z-10 flex flex-col gap-8 md:flex-row md:items-center">
+            <div className="flex size-16 shrink-0 items-center justify-center rounded-2xl border border-primary/20 bg-primary/10 text-primary">
+              <span className="material-symbols-outlined text-4xl">verified</span>
+            </div>
+            <div className="flex-1">
+              <h3 className="mb-2 text-xl font-900 text-white">Your subscription is active</h3>
+              <p className="text-sm leading-relaxed text-white/50">
+                You have full access to the digital empire. Browse the library and download any product to
+                start your business today.
+              </p>
+            </div>
+            <div className="flex shrink-0 flex-col gap-3">
+              <Link
+                href="/dashboard/account"
+                className="rounded-xl bg-primary px-6 py-3 text-center text-xs font-black uppercase tracking-widest text-background-dark transition-all hover:bg-primary/90"
+              >
+                Manage Membership
+              </Link>
+              <Link
+                href="/dashboard/account"
+                className="rounded-xl border border-white/10 bg-white/5 px-6 py-3 text-center text-xs font-black uppercase tracking-widest text-white transition-all hover:bg-white/10"
+              >
+                Account & Billing
+              </Link>
+            </div>
+          </div>
         </div>
-      </Reveal>
 
-      {/* Subscription Alert */}
-      {!summary.hasAccess ? (
-        <Reveal delay={100}>
-          <GlassCard className="border-amber-200/50 bg-amber-50/80">
-            <div className="flex items-start gap-4">
-              <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-xl bg-amber-100 text-amber-600">
-                <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
-                </svg>
+        <div className="grid grid-cols-1 gap-6 md:grid-cols-3">
+          <div className="rounded-3xl border-white/5 glass-card p-8 transition-all hover:border-primary/20">
+            <div className="mb-4 flex items-center justify-between">
+              <span className="material-symbols-outlined text-3xl text-primary">inventory_2</span>
+            </div>
+            <p className="mb-1 text-[11px] font-bold uppercase tracking-widest text-white/40">Total Products</p>
+            <h4 className="text-4xl font-900 text-white">{totalProducts ?? 0}</h4>
+          </div>
+          <div className="rounded-3xl border-white/5 glass-card p-8 transition-all hover:border-primary/20">
+            <div className="mb-4 flex items-center justify-between">
+              <span className="material-symbols-outlined text-3xl text-primary">bolt</span>
+            </div>
+            <p className="mb-1 text-[11px] font-bold uppercase tracking-widest text-white/40">New This Month</p>
+            <h4 className="text-4xl font-900 text-white">{newThisMonth ?? 0}</h4>
+          </div>
+          <div className="rounded-3xl border-white/5 glass-card p-8 transition-all hover:border-primary/20">
+            <div className="mb-4 flex items-center justify-between">
+              <span className="material-symbols-outlined text-3xl text-primary">download_done</span>
+            </div>
+            <p className="mb-1 text-[11px] font-bold uppercase tracking-widest text-white/40">Your Downloads</p>
+            <h4 className="text-4xl font-900 text-white">{yourDownloads ?? 0}</h4>
+          </div>
+        </div>
+
+        <section className="space-y-6">
+          <div className="flex items-center justify-between">
+            <h3 className="text-2xl font-900 text-white">New this month</h3>
+            <Link href="/dashboard/new" className="text-xs font-bold uppercase tracking-widest text-primary hover:underline">
+              View all
+            </Link>
+          </div>
+          <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
+            {newItems.length ? (
+              newItems.map((item) => (
+                <Link key={item.id} href={`/dashboard/library?q=${encodeURIComponent(item.title)}`} className="group cursor-pointer">
+                  <div className="overflow-hidden rounded-2xl border-white/10 glass-card transition-all hover:border-primary/30">
+                    <div className="relative aspect-video">
+                      <img
+                        alt={item.title}
+                        className="h-full w-full object-cover transition-transform group-hover:scale-105"
+                        src={item.imageUrl}
+                      />
+                      <div className="absolute left-4 top-4">
+                        <span className="rounded bg-primary px-2 py-1 text-[10px] font-black uppercase tracking-tighter text-background-dark">
+                          Gold MRR
+                        </span>
+                      </div>
+                    </div>
+                    <div className="flex items-center justify-between p-5">
+                      <div>
+                        <h4 className="font-bold text-white transition-colors group-hover:text-primary">{item.title}</h4>
+                        <p className="mt-1 text-xs text-white/40">
+                          {item.category}
+                          {item.description ? ` • ${item.description}` : ""}
+                        </p>
+                      </div>
+                      <span className="flex size-10 items-center justify-center rounded-full bg-white/5 text-white transition-all hover:bg-primary hover:text-background-dark">
+                        <span className="material-symbols-outlined text-xl">download</span>
+                      </span>
+                    </div>
+                  </div>
+                </Link>
+              ))
+            ) : (
+              <div className="rounded-2xl border border-dashed border-white/10 bg-white/5 p-6 text-sm text-white/50 md:col-span-2">
+                No releases have been marked as New This Month yet.
               </div>
-              <div className="flex-1">
-                <p className="font-semibold text-amber-900">
-                  Your subscription is not active.
-                </p>
-                <p className="mt-1 text-sm text-amber-800">
-                  Downloads and member content are locked until your subscription is active.
-                </p>
-                <div className="mt-4 flex flex-wrap gap-3">
-                  <Link
-                    href="/"
-                    className="inline-flex h-10 items-center justify-center rounded-xl bg-gradient-to-r from-indigo-500 to-violet-500 px-4 text-sm font-semibold text-white shadow-lg shadow-indigo-500/25 transition-all hover:shadow-indigo-500/40 hover:scale-[1.02] active:scale-[0.98]"
-                  >
-                    Reactivate membership
-                  </Link>
-                  <Link
-                    href="/dashboard/account"
-                    className="inline-flex h-10 items-center justify-center rounded-xl border border-amber-200 bg-white/80 px-4 text-sm font-semibold text-amber-900 backdrop-blur-sm transition-all hover:bg-white"
-                  >
-                    Account & Billing
-                  </Link>
-                </div>
-              </div>
-            </div>
-          </GlassCard>
-        </Reveal>
-      ) : null}
+            )}
+          </div>
+        </section>
+      </div>
 
-      {/* Stats Grid */}
-      <StaggerReveal delay={150} stagger={80} className="grid gap-4 md:grid-cols-3">
-        <StatCard 
-          label="Total products" 
-          value={totalProducts ?? 0} 
-          delay={150}
-          icon={
-            <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
-            </svg>
-          }
-        />
-        <StatCard 
-          label="New this month" 
-          value={newThisMonth ?? 0} 
-          delay={230}
-          icon={
-            <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M13 10V3L4 14h7v7l9-11h-7z" />
-            </svg>
-          }
-        />
-        <StatCard 
-          label="Your downloads" 
-          value={yourDownloads ?? 0} 
-          delay={310}
-          icon={
-            <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
-            </svg>
-          }
-        />
-      </StaggerReveal>
+      <div className="space-y-8">
+        <div className="rounded-3xl border-white/5 glass-card p-8">
+          <h3 className="mb-6 text-xl font-900 text-white">Quick actions</h3>
+          <div className="space-y-4">
+            <Link
+              href="/dashboard/library"
+              className="flex w-full items-center justify-center gap-3 rounded-xl bg-primary px-6 py-4 text-sm font-black uppercase tracking-widest text-background-dark transition-all hover:bg-primary/90 gold-glow"
+            >
+              <span className="material-symbols-outlined">explore</span>
+              Browse Library
+            </Link>
+            <Link
+              href="/dashboard/starter-packs"
+              className="flex w-full items-center justify-center gap-3 rounded-xl border border-white/10 bg-white/5 px-6 py-4 text-sm font-bold text-white transition-all hover:bg-white/10"
+            >
+              <span className="material-symbols-outlined text-primary">auto_fix_high</span>
+              Download Starter Pack
+            </Link>
+            <Link
+              href="/dashboard/training"
+              className="flex w-full items-center justify-center gap-3 rounded-xl border border-white/10 bg-white/5 px-6 py-4 text-sm font-bold text-white transition-all hover:bg-white/10"
+            >
+              <span className="material-symbols-outlined text-primary">play_circle</span>
+              Watch Training
+            </Link>
+          </div>
+          <div className="mt-8 rounded-xl border border-primary/10 bg-primary/5 p-4">
+            <p className="mb-1 text-[10px] font-black uppercase tracking-widest text-primary">Fair-use policy</p>
+            <p className="text-[11px] leading-relaxed text-white/50">
+              We enforce daily download limits to discourage dumping. Download what you need, when you need
+              it.
+            </p>
+          </div>
+        </div>
 
-      {/* Content Grid */}
-      <div className="grid gap-4 lg:grid-cols-3">
-        {/* New This Month */}
-        <Reveal delay={400} className="lg:col-span-2">
-          <GlassCard padding="none" className="overflow-hidden">
-            <div className="flex items-center justify-between border-b border-zinc-100 p-5">
-              <h2 className="text-base font-semibold text-zinc-900">New this month</h2>
-              <Link
-                href="/dashboard/new"
-                className="text-sm font-medium text-indigo-600 transition-colors hover:text-indigo-700"
-              >
-                View all
-              </Link>
+        <div className="relative overflow-hidden rounded-3xl border-white/5 glass-card p-8">
+          <div className="mb-6 flex items-center gap-4">
+            <span className="material-symbols-outlined text-primary">gavel</span>
+            <h3 className="text-lg font-bold text-white">Your Licenses</h3>
+          </div>
+          <div className="space-y-4">
+            <div className="flex items-center gap-3 rounded-xl bg-white/5 p-3">
+              <span className="material-symbols-outlined text-xl text-primary">verified</span>
+              <span className="text-xs font-medium text-white/70">Master Resell Rights (MRR)</span>
             </div>
-
-            <div className="grid gap-3 p-5 sm:grid-cols-2">
-              {newItems && newItems.length ? (
-                newItems.map((item, i) => (
-                  <Link
-                    key={item.id}
-                    href={`/dashboard/library?q=${encodeURIComponent(item.title)}`}
-                    className="group rounded-xl border border-zinc-100 bg-zinc-50/50 p-4 transition-all hover:border-indigo-200 hover:bg-indigo-50/50"
-                  >
-                    <p className="text-sm font-semibold text-zinc-900 group-hover:text-indigo-700">
-                      {item.title}
-                    </p>
-                    <p className="mt-1 text-xs text-zinc-500">{item.category}</p>
-                    {item.description ? (
-                      <p className="mt-2 text-sm text-zinc-600 line-clamp-2">
-                        {item.description}
-                      </p>
-                    ) : null}
-                  </Link>
-                ))
-              ) : (
-                <div className="rounded-xl border border-dashed border-zinc-200 bg-zinc-50/50 p-6 text-sm text-zinc-500 sm:col-span-2">
-                  No releases have been marked as "New This Month" yet.
-                </div>
-              )}
+            <div className="flex items-center gap-3 rounded-xl bg-white/5 p-3">
+              <span className="material-symbols-outlined text-xl text-primary">verified</span>
+              <span className="text-xs font-medium text-white/70">Private Label Rights (PLR)</span>
             </div>
-          </GlassCard>
-        </Reveal>
-
-        {/* Quick Actions */}
-        <Reveal delay={500}>
-          <GlassCard padding="none" className="overflow-hidden">
-            <div className="border-b border-zinc-100 p-5">
-              <h2 className="text-base font-semibold text-zinc-900">Quick actions</h2>
-            </div>
-
-            <div className="flex flex-col gap-2 p-5">
-              <Link
-                href="/dashboard/library"
-                className="inline-flex h-11 items-center justify-center rounded-xl bg-gradient-to-r from-indigo-500 to-violet-500 px-4 text-sm font-semibold text-white shadow-lg shadow-indigo-500/25 transition-all hover:shadow-indigo-500/40 hover:scale-[1.02] active:scale-[0.98]"
-              >
-                Browse Library
-              </Link>
-              <Link
-                href="/dashboard/starter-packs"
-                className="inline-flex h-11 items-center justify-center rounded-xl border border-zinc-200 bg-white/80 px-4 text-sm font-semibold text-zinc-700 backdrop-blur-sm transition-all hover:bg-white hover:border-zinc-300"
-              >
-                Download Starter Pack
-              </Link>
-              <Link
-                href="/dashboard/training"
-                className="inline-flex h-11 items-center justify-center rounded-xl border border-zinc-200 bg-white/80 px-4 text-sm font-semibold text-zinc-700 backdrop-blur-sm transition-all hover:bg-white hover:border-zinc-300"
-              >
-                Watch Training
-              </Link>
-            </div>
-
-            <div className="border-t border-zinc-100 p-5">
-              <div className="rounded-xl border border-indigo-100 bg-indigo-50/50 p-4 text-xs text-indigo-700">
-                <p className="font-semibold">Fair-use policy</p>
-                <p className="mt-1 text-indigo-600">
-                  We enforce daily download limits to discourage dumping. Download what you need, when you need it.
-                </p>
-              </div>
-            </div>
-          </GlassCard>
-        </Reveal>
+          </div>
+        </div>
       </div>
     </div>
   );

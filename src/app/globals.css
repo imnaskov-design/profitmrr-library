@@ -5,6 +5,7 @@
   --color-background-dark: #0a0a0a;
   --color-background-light: #f8f8f5;
   --color-surface: #161616;
+  --color-sidebar: #121212;
   --color-modal-bg: #121212;
   --color-border-gold: rgba(255, 193, 5, 0.2);
   --font-display: "Manrope", sans-serif;
@@ -185,6 +186,12 @@ body {
   box-shadow:
     0 0 50px rgba(255, 193, 5, 0.15),
     inset 0 0 20px rgba(255, 193, 5, 0.05);
+}
+
+/* Gold Border Glow Effect */
+.gold-border-glow {
+  border: 1px solid rgba(255, 193, 5, 0.3);
+  box-shadow: 0 0 15px rgba(255, 193, 5, 0.1);
 }
 
 /* Gold Gradient Text */
