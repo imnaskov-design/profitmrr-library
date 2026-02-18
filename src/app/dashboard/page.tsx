@@ -2,6 +2,11 @@ import Link from "next/link";
 
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 
+const fallbackImages = [
+  "https://lh3.googleusercontent.com/aida-public/AB6AXuAhlFw32ysjW8gJ-_8cK-6nqqY1RVoioJGVudPH5VSdW2G8ylsWm1PQebmR2ExzwPVdNzvh3ZT0KrhwGhi2YhpaXsoilphesNkGMS-emyUdOFual7nuu-5YL3w2rE105VLGEt6k_4krKU2Z-HhM7S379CuQg4oo8XM8jT9eV_ZGnbT3-GQAV_tTihCEoIcvaDbR9nofLYS2N5VT0wR21b8caC-b8bTODXNSeOcfI13pgTpRiupFPUywlWCBAvix3HcmnSiJoDDfkg",
+  "https://lh3.googleusercontent.com/aida-public/AB6AXuD25huSL4v1j8pjE0YocysTTCYOF7mcXQrreD562MpjO0PsLVdEGZgYEpppsg5q6-RpNDeCbabumSRqAJg0s8FLlqJrfiUSjz5OuGSw5NJxRZLmf9TzqBw_B--KhhKYB4h1KU86p-GrABztmzOjw-irq-2RI-wBTYJHuRB_Hq2UbDjlb_euSebOhGkv7QkRypzCWUODT_qU2yB3A3FIm2WN6jPtnpxrzfXweV0OEre6VEBTwWft2pBelCMWctzbqEACgBQaxfr2SA",
+];
+
 export default async function DashboardHomePage() {
   const supabase = await createSupabaseServerClient();
   const {
@@ -10,18 +15,9 @@ export default async function DashboardHomePage() {
 
   const userId = user?.id;
 
-  const [
-    { count: totalProducts },
-    { count: newThisMonth },
-    { count: yourDownloads },
-    { data: newItemsRaw },
-  ] = userId
+  const [{ count: totalProducts }, { count: yourDownloads }, { data: latestItemsRaw }] = userId
     ? await Promise.all([
         supabase.from("library_items").select("id", { count: "exact", head: true }),
-        supabase
-          .from("library_items")
-          .select("id", { count: "exact", head: true })
-          .eq("is_new", true),
         supabase
           .from("download_logs")
           .select("id", { count: "exact", head: true })
@@ -29,25 +25,12 @@ export default async function DashboardHomePage() {
         supabase
           .from("library_items")
           .select("id, title, category, description")
-          .eq("is_new", true)
           .order("created_at", { ascending: false })
           .limit(2),
       ])
-    : ([
-        { count: 0 },
-        { count: 0 },
-        { count: 0 },
-        { data: [] },
-      ] as const);
+    : ([{ count: 0 }, { count: 0 }, { data: [] }] as const);
 
-  const fallbackImages = [
-    "https://lh3.googleusercontent.com/aida-public/AB6AXuAhlFw32ysjW8gJ-_8cK-6nqqY1RVoioJGVudPH5VSdW2G8ylsWm1PQebmR2ExzwPVdNzvh3ZT0KrhwGhi2YhpaXsoilphesNkGMS-emyUdOFual7nuu-5YL3w2rE105VLGEt6k_4krKU2Z-HhM7S379CuQg4oo8XM8jT9eV_ZGnbT3-GQAV_tTihCEoIcvaDbR9nofLYS2N5VT0wR21b8caC-b8bTODXNSeOcfI13pgTpRiupFPUywlWCBAvix3HcmnSiJoDDfkg",
-    "https://lh3.googleusercontent.com/aida-public/AB6AXuD25huSL4v1j8pjE0YocysTTCYOF7mcXQrreD562MpjO0PsLVdEGZgYEpppsg5q6-RpNDeCbabumSRqAJg0s8FLlqJrfiUSjz5OuGSw5NJxRZLmf9TzqBw_B--KhhKYB4h1KU86p-GrABztmzOjw-irq-2RI-wBTYJHuRB_Hq2UbDjlb_euSebOhGkv7QkRypzCWUODT_qU2yB3A3FIm2WN6jPtnpxrzfXweV0OEre6VEBTwWft2pBelCMWctzbqEACgBQaxfr2SA",
-  ];
-
-  const newItemsSource = newItemsRaw ?? [];
-
-  const newItems = newItemsSource.map((item, index) => ({
+  const latestItems = (latestItemsRaw ?? []).map((item, index) => ({
     ...item,
     imageUrl: fallbackImages[index % fallbackImages.length],
   }));
@@ -108,13 +91,7 @@ export default async function DashboardHomePage() {
             <p className="mb-1 text-[11px] font-bold uppercase tracking-widest text-white/40">Total Products</p>
             <h4 className="text-4xl font-900 text-white">{totalProducts ?? 0}</h4>
           </div>
-          <div className="rounded-3xl border-white/5 glass-card p-8 transition-all hover:border-primary/20">
-            <div className="mb-4 flex items-center justify-between">
-              <span className="material-symbols-outlined text-3xl text-primary">bolt</span>
-            </div>
-            <p className="mb-1 text-[11px] font-bold uppercase tracking-widest text-white/40">New This Month</p>
-            <h4 className="text-4xl font-900 text-white">{newThisMonth ?? 0}</h4>
-          </div>
+
           <div className="rounded-3xl border-white/5 glass-card p-8 transition-all hover:border-primary/20">
             <div className="mb-4 flex items-center justify-between">
               <span className="material-symbols-outlined text-3xl text-primary">download_done</span>
@@ -122,18 +99,26 @@ export default async function DashboardHomePage() {
             <p className="mb-1 text-[11px] font-bold uppercase tracking-widest text-white/40">Your Downloads</p>
             <h4 className="text-4xl font-900 text-white">{yourDownloads ?? 0}</h4>
           </div>
+
+          <div className="rounded-3xl border-white/5 glass-card p-8 transition-all hover:border-primary/20">
+            <div className="mb-4 flex items-center justify-between">
+              <span className="material-symbols-outlined text-3xl text-primary">auto_awesome</span>
+            </div>
+            <p className="mb-1 text-[11px] font-bold uppercase tracking-widest text-white/40">AI Vaults</p>
+            <h4 className="text-4xl font-900 text-white">2</h4>
+          </div>
         </div>
 
         <section className="space-y-6">
           <div className="flex items-center justify-between">
-            <h3 className="text-2xl font-900 text-white">New this month</h3>
-            <Link href="/dashboard/new" className="text-xs font-bold uppercase tracking-widest text-primary hover:underline">
+            <h3 className="text-2xl font-900 text-white">Latest in the vault</h3>
+            <Link href="/dashboard/library" className="text-xs font-bold uppercase tracking-widest text-primary hover:underline">
               View all
             </Link>
           </div>
           <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
-            {newItems.length ? (
-              newItems.map((item) => (
+            {latestItems.length ? (
+              latestItems.map((item) => (
                 <Link key={item.id} href={`/dashboard/library?q=${encodeURIComponent(item.title)}`} className="group cursor-pointer">
                   <div className="overflow-hidden rounded-2xl border-white/10 glass-card transition-all hover:border-primary/30">
                     <div className="relative aspect-video">
@@ -165,7 +150,7 @@ export default async function DashboardHomePage() {
               ))
             ) : (
               <div className="rounded-2xl border border-dashed border-white/10 bg-white/5 p-6 text-sm text-white/50 md:col-span-2">
-                No releases have been marked as New This Month yet.
+                No products have been added to your vault yet.
               </div>
             )}
           </div>
@@ -183,26 +168,28 @@ export default async function DashboardHomePage() {
               <span className="material-symbols-outlined">explore</span>
               Browse Library
             </Link>
+
             <Link
-              href="/dashboard/starter-packs"
+              href="/dashboard/ebooks/create"
               className="flex w-full items-center justify-center gap-3 rounded-xl border border-white/10 bg-white/5 px-6 py-4 text-sm font-bold text-white transition-all hover:bg-white/10"
             >
-              <span className="material-symbols-outlined text-primary">auto_fix_high</span>
-              Download Starter Pack
+              <span className="material-symbols-outlined text-primary">auto_awesome</span>
+              Create E-Book
             </Link>
+
             <Link
-              href="/dashboard/training"
+              href="/dashboard/planners/create"
               className="flex w-full items-center justify-center gap-3 rounded-xl border border-white/10 bg-white/5 px-6 py-4 text-sm font-bold text-white transition-all hover:bg-white/10"
             >
-              <span className="material-symbols-outlined text-primary">play_circle</span>
-              Watch Training
+              <span className="material-symbols-outlined text-primary">calendar_month</span>
+              Create Planner
             </Link>
           </div>
+
           <div className="mt-8 rounded-xl border border-primary/10 bg-primary/5 p-4">
             <p className="mb-1 text-[10px] font-black uppercase tracking-widest text-primary">Fair-use policy</p>
             <p className="text-[11px] leading-relaxed text-white/50">
-              We enforce daily download limits to discourage dumping. Download what you need, when you need
-              it.
+              We enforce download limits to discourage dumping. Download what you need, when you need it.
             </p>
           </div>
         </div>
@@ -227,3 +214,4 @@ export default async function DashboardHomePage() {
     </div>
   );
 }
+

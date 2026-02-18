@@ -116,9 +116,12 @@ export default async function SupportPage({
               <span className="size-2 animate-pulse rounded-full bg-emerald-500"></span>
               Response: ~5 mins
             </span>
-            <button className="rounded-lg bg-primary px-6 py-2.5 font-bold text-background-dark transition-transform hover:scale-105">
+            <Link
+              href="/dashboard/community"
+              className="rounded-lg bg-primary px-6 py-2.5 font-bold text-background-dark transition-transform hover:scale-105"
+            >
               Start Chat
-            </button>
+            </Link>
           </div>
         </div>
 
@@ -134,9 +137,12 @@ export default async function SupportPage({
           </div>
           <div className="flex items-center justify-between">
             <span className="text-xs font-bold uppercase tracking-wider text-slate-500">Response: &lt; 24 hrs</span>
-            <button className="rounded-lg bg-slate-200 px-6 py-2.5 font-bold text-slate-900 transition-all hover:bg-white dark:bg-white/10 dark:text-white dark:hover:bg-white/20">
+            <a
+              href="#direct-ticket"
+              className="rounded-lg bg-slate-200 px-6 py-2.5 font-bold text-slate-900 transition-all hover:bg-white dark:bg-white/10 dark:text-white dark:hover:bg-white/20"
+            >
               Open Ticket
-            </button>
+            </a>
           </div>
         </div>
       </section>
@@ -162,7 +168,7 @@ export default async function SupportPage({
         </div>
       </section>
 
-      <section className="rounded-2xl p-8 glass">
+      <section id="direct-ticket" className="rounded-2xl p-8 glass">
         <h4 className="mb-4 text-lg font-bold text-white">Send a direct support ticket</h4>
 
         {sent ? (

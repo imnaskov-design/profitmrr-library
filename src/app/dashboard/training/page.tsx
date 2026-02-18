@@ -125,39 +125,62 @@ export default function TrainingHubPage() {
             <p className="text-sm text-slate-500">Expand your knowledge with 120+ deep-dive modules</p>
           </div>
           <div className="flex gap-2">
-            <button className="rounded-lg border border-white/10 bg-white/5 p-2 text-slate-400"><span className="material-symbols-outlined">grid_view</span></button>
-            <button className="rounded-lg border border-white/10 bg-white/5 p-2 text-slate-400"><span className="material-symbols-outlined">list</span></button>
+            <button className="rounded-lg border border-white/10 bg-white/5 p-2 text-slate-400">
+              <span className="material-symbols-outlined">grid_view</span>
+            </button>
+            <button className="rounded-lg border border-white/10 bg-white/5 p-2 text-slate-400">
+              <span className="material-symbols-outlined">list</span>
+            </button>
           </div>
         </div>
 
         <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
           {trainingCards.map((card, index) => (
-            <article key={card.title} className="group flex flex-col overflow-hidden rounded-2xl border border-white/5 glass-card transition-all hover:-translate-y-1">
+            <article
+              key={card.title}
+              className="group flex flex-col overflow-hidden rounded-2xl border border-white/5 glass-card transition-all hover:-translate-y-1"
+            >
               <div className="relative aspect-video overflow-hidden">
-                <img alt={card.title} className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-110" src={card.image} />
+                <img
+                  alt={card.title}
+                  className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-110"
+                  src={card.image}
+                />
                 <div className="absolute inset-0 flex items-center justify-center bg-black/40 opacity-0 transition-opacity group-hover:opacity-100">
                   <div className="flex size-12 items-center justify-center rounded-full bg-primary text-background-dark">
                     <span className="material-symbols-outlined">play_arrow</span>
                   </div>
                 </div>
-                <div className="absolute bottom-2 right-2 rounded bg-black/70 px-1.5 py-0.5 text-[10px] font-bold text-white">{card.duration}</div>
+                <div className="absolute bottom-2 right-2 rounded bg-black/70 px-1.5 py-0.5 text-[10px] font-bold text-white">
+                  {card.duration}
+                </div>
               </div>
 
               <div className="flex flex-1 flex-col p-5">
                 <div className="mb-3 flex items-center gap-2">
-                  <span className="rounded border border-primary/20 bg-primary/10 px-2 py-0.5 text-[10px] font-bold uppercase text-primary">{card.category}</span>
+                  <span className="rounded border border-primary/20 bg-primary/10 px-2 py-0.5 text-[10px] font-bold uppercase text-primary">
+                    {card.category}
+                  </span>
                   <span className="flex items-center gap-1 text-[10px] font-bold text-slate-400">
-                    <span className="material-symbols-outlined text-[12px]">signal_cellular_alt{index % 2 === 0 ? "" : "_2_bar"}</span>
+                    <span className="material-symbols-outlined text-[12px]">
+                      signal_cellular_alt{index % 2 === 0 ? "" : "_2_bar"}
+                    </span>
                     {card.level}
                   </span>
                 </div>
 
-                <h4 className="mb-4 line-clamp-2 font-bold leading-tight text-white transition-colors group-hover:text-primary">{card.title}</h4>
+                <h4 className="mb-4 line-clamp-2 font-bold leading-tight text-white transition-colors group-hover:text-primary">
+                  {card.title}
+                </h4>
 
                 <div className="mt-auto flex items-center justify-between border-t border-white/5 pt-4">
                   <div className="flex items-center gap-2">
                     <div className="size-6 rounded-full bg-slate-800">
-                      <img className="h-full w-full rounded-full object-cover" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCDhYs04CVHZ1lrbjxE1dHZdh7d7JIhrR41xcKLoV1zR5Na-HnR7HjhKxA5j38-2UfYsPqzFJPGfDZk8q3dkw99WA8oCh0fszcFVcsYY9mGlxh93dPF4hq1BEs7Jw2OPrzE6j1zsWd2tY2YWAXJgXagCJJGptOnV70SqA8BXxydP6ZC2RgZncahqFsRC4-6d7aKrHBvgP9fmLyraz62VMNMvD02VtKtWBqOSg08Mg7d7B8UlZPRdCxr5ZOObP1Cb_lqSyKOSOrtWw" alt={card.teacher} />
+                      <img
+                        className="h-full w-full rounded-full object-cover"
+                        src="https://lh3.googleusercontent.com/aida-public/AB6AXuCDhYs04CVHZ1lrbjxE1dHZdh7d7JIhrR41xcKLoV1zR5Na-HnR7HjhKxA5j38-2UfYsPqzFJPGfDZk8q3dkw99WA8oCh0fszcFVcsYY9mGlxh93dPF4hq1BEs7Jw2OPrzE6j1zsWd2tY2YWAXJgXagCJJGptOnV70SqA8BXxydP6ZC2RgZncahqFsRC4-6d7aKrHBvgP9fmLyraz62VMNMvD02VtKtWBqOSg08Mg7d7B8UlZPRdCxr5ZOObP1Cb_lqSyKOSOrtWw"
+                        alt={card.teacher}
+                      />
                     </div>
                     <span className="text-[10px] font-semibold text-slate-400">{card.teacher}</span>
                   </div>

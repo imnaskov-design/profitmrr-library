@@ -20,6 +20,38 @@ export default async function StarterPacksPage() {
     imageUrl: starterImages[index % starterImages.length],
   }));
 
+  const safeItems = items.length
+    ? items
+    : [
+        {
+          id: "fallback-1",
+          title: "The Faceless Wealth Pack",
+          category: "Reels",
+          description:
+            "Dominate social media without showing your face. High-end aesthetic reels and strategy.",
+          imageUrl: starterImages[0],
+          file_size_mb: 0,
+        },
+        {
+          id: "fallback-2",
+          title: "Health & Wellness Essentials",
+          category: "Wellness",
+          description:
+            "Everything from meal trackers to yoga journals. High-demand evergreen niche.",
+          imageUrl: starterImages[1],
+          file_size_mb: 0,
+        },
+        {
+          id: "fallback-3",
+          title: "Modern Home Printables",
+          category: "Printables",
+          description:
+            "Abstract wall art and organizational binders for the modern minimalist home.",
+          imageUrl: starterImages[2],
+          file_size_mb: 0,
+        },
+      ];
+
   return (
     <div className="space-y-10">
       <header className="flex flex-col justify-between gap-6 md:flex-row md:items-end">
@@ -32,7 +64,9 @@ export default async function StarterPacksPage() {
             <div className="h-10 w-10 rounded-full border-2 border-background-dark bg-slate-700"></div>
             <div className="h-10 w-10 rounded-full border-2 border-background-dark bg-slate-600"></div>
             <div className="h-10 w-10 rounded-full border-2 border-background-dark bg-slate-500"></div>
-            <div className="flex h-10 w-10 items-center justify-center rounded-full border-2 border-background-dark bg-slate-800 text-[10px] font-bold text-white">+2.4k</div>
+            <div className="flex h-10 w-10 items-center justify-center rounded-full border-2 border-background-dark bg-slate-800 text-[10px] font-bold text-white">
+              +2.4k
+            </div>
           </div>
         </div>
       </header>
@@ -54,10 +88,22 @@ export default async function StarterPacksPage() {
             <div className="space-y-4">
               <p className="font-medium italic text-slate-300">What&apos;s Inside the Vault:</p>
               <ul className="grid grid-cols-1 gap-3 md:grid-cols-2">
-                <li className="flex items-center gap-3 text-sm text-slate-200"><span className="material-symbols-outlined text-xl text-primary">check_circle</span>50+ Professional Planners</li>
-                <li className="flex items-center gap-3 text-sm text-slate-200"><span className="material-symbols-outlined text-xl text-primary">check_circle</span>100+ High-Engagement Reels</li>
-                <li className="flex items-center gap-3 text-sm text-slate-200"><span className="material-symbols-outlined text-xl text-primary">check_circle</span>Etsy SEO Master Guide</li>
-                <li className="flex items-center gap-3 text-sm text-slate-200"><span className="material-symbols-outlined text-xl text-primary">check_circle</span>20+ Mockup Templates</li>
+                <li className="flex items-center gap-3 text-sm text-slate-200">
+                  <span className="material-symbols-outlined text-xl text-primary">check_circle</span>
+                  50+ Professional Planners
+                </li>
+                <li className="flex items-center gap-3 text-sm text-slate-200">
+                  <span className="material-symbols-outlined text-xl text-primary">check_circle</span>
+                  100+ High-Engagement Reels
+                </li>
+                <li className="flex items-center gap-3 text-sm text-slate-200">
+                  <span className="material-symbols-outlined text-xl text-primary">check_circle</span>
+                  Etsy SEO Master Guide
+                </li>
+                <li className="flex items-center gap-3 text-sm text-slate-200">
+                  <span className="material-symbols-outlined text-xl text-primary">check_circle</span>
+                  20+ Mockup Templates
+                </li>
               </ul>
             </div>
 
@@ -98,15 +144,24 @@ export default async function StarterPacksPage() {
         </div>
 
         <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
-          {(items.length ? items : [{ id: "fallback-1", title: "The Faceless Wealth Pack", category: "Reels", description: "Dominate social media without showing your face. High-end aesthetic reels and strategy.", imageUrl: starterImages[0], file_size_mb: 0 }, { id: "fallback-2", title: "Health & Wellness Essentials", category: "Wellness", description: "Everything from meal trackers to yoga journals. High-demand evergreen niche.", imageUrl: starterImages[1], file_size_mb: 0 }, { id: "fallback-3", title: "Modern Home Printables", category: "Printables", description: "Abstract wall art and organizational binders for the modern minimalist home.", imageUrl: starterImages[2], file_size_mb: 0 }]).map((item) => (
-            <article key={item.id} className="group flex flex-col overflow-hidden rounded-2xl glass-panel transition-all hover:border-primary/40">
+          {safeItems.map((item) => (
+            <article
+              key={item.id}
+              className="group flex flex-col overflow-hidden rounded-2xl glass-panel transition-all hover:border-primary/40"
+            >
               <div className="relative h-48 bg-cover bg-center" style={{ backgroundImage: `url('${item.imageUrl}')` }}>
-                <div className="absolute right-4 top-4 rounded bg-primary px-2 py-1 text-[10px] font-black italic text-background-dark">NICHE PROVEN</div>
+                <div className="absolute right-4 top-4 rounded bg-primary px-2 py-1 text-[10px] font-black italic text-background-dark">
+                  NICHE PROVEN
+                </div>
               </div>
 
               <div className="flex flex-1 flex-col p-6">
-                <h5 className="mb-2 text-lg font-bold text-white transition-colors group-hover:text-primary">{item.title}</h5>
-                <p className="mb-6 text-sm leading-relaxed text-slate-400">{item.description ?? "Curated bundle to help you launch quickly."}</p>
+                <h5 className="mb-2 text-lg font-bold text-white transition-colors group-hover:text-primary">
+                  {item.title}
+                </h5>
+                <p className="mb-6 text-sm leading-relaxed text-slate-400">
+                  {item.description ?? "Curated bundle to help you launch quickly."}
+                </p>
 
                 <div className="mt-auto space-y-4">
                   <div className="flex items-center justify-between text-xs font-bold uppercase text-slate-500">
@@ -154,7 +209,9 @@ export default async function StarterPacksPage() {
             </div>
             <div>
               <h6 className="font-bold text-white">Membership Leverage</h6>
-              <p className="text-sm text-slate-400">Save thousands on inventory and focus purely on scaling your revenue.</p>
+              <p className="text-sm text-slate-400">
+                Save thousands on inventory and focus purely on scaling your revenue.
+              </p>
             </div>
           </div>
         </div>

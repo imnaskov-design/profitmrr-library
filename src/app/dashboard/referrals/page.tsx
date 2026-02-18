@@ -55,7 +55,7 @@ export default function ReferralsPage() {
 
       <section className="grid grid-cols-1 gap-6 md:grid-cols-2 xl:grid-cols-4">
         {statCards.map((stat) => (
-          <article key={stat.label} className="glass-panel rounded-xl p-6">
+          <article key={stat.label} className="rounded-xl p-6 glass-card">
             <div className="mb-4 flex items-center justify-between">
               <span className="text-xs font-black uppercase tracking-widest text-slate-400">{stat.label}</span>
               <div className="flex size-8 items-center justify-center rounded-lg bg-primary/10 text-primary">
@@ -132,7 +132,7 @@ export default function ReferralsPage() {
       </section>
 
       <section className="grid grid-cols-1 gap-8 xl:grid-cols-3">
-        <article className="glass-panel rounded-xl p-6 xl:col-span-2">
+        <article className="rounded-xl p-6 glass-card xl:col-span-2">
           <div className="mb-8 flex items-center justify-between">
             <div>
               <h4 className="text-lg font-bold text-white">Earnings Growth</h4>
@@ -174,7 +174,7 @@ export default function ReferralsPage() {
         </article>
 
         <div className="space-y-6">
-          <article className="glass-panel rounded-xl p-6">
+          <article className="rounded-xl p-6 glass-card">
             <h4 className="mb-6 font-bold text-white">Program Tiers</h4>
             <div className="space-y-4">
               <div className="rounded-lg border border-border-dark bg-white/5 p-4">

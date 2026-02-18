@@ -32,11 +32,16 @@ const emailEnvSchema = z.object({
   EMAIL_REPLY_TO: z.string().min(1).optional(),
 });
 
+const registerInviteEnvSchema = z.object({
+  REGISTER_INVITE_TOKEN_TTL_HOURS: z.coerce.number().int().min(1).max(24 * 30),
+});
+
 let coreCached: z.infer<typeof coreServerEnvSchema> | null = null;
 let supabaseAdminCached: z.infer<typeof supabaseAdminEnvSchema> | null = null;
 let lemonCached: z.infer<typeof lemonSqueezyEnvSchema> | null = null;
 let r2Cached: z.infer<typeof r2EnvSchema> | null = null;
 let emailCached: z.infer<typeof emailEnvSchema> | null = null;
+let registerInviteCached: z.infer<typeof registerInviteEnvSchema> | null = null;
 
 export function getServerEnv() {
   if (coreCached) return coreCached;
@@ -100,5 +105,15 @@ export function getEmailEnv() {
   });
 
   return emailCached;
+}
+
+export function getRegisterInviteEnv() {
+  if (registerInviteCached) return registerInviteCached;
+
+  registerInviteCached = registerInviteEnvSchema.parse({
+    REGISTER_INVITE_TOKEN_TTL_HOURS: readEnvString("REGISTER_INVITE_TOKEN_TTL_HOURS"),
+  });
+
+  return registerInviteCached;
 }
 

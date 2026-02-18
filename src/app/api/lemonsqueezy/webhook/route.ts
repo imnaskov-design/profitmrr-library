@@ -1,6 +1,8 @@
 import { NextResponse } from "next/server";
 
-import { getLemonSqueezyEnv } from "@/lib/env/server";
+import { getLemonSqueezyEnv, getRegisterInviteEnv } from "@/lib/env/server";
+import { sendRegisterInviteEmail } from "@/lib/email/register-invite";
+import { createRegisterInviteToken } from "@/lib/invite-tokens";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 
 type SubscriptionStatus = "active" | "cancelled" | "expired" | "inactive";
@@ -82,6 +84,10 @@ function mapEventToStatus(eventName: string): SubscriptionStatus | null {
   }
 }
 
+function shouldIssueInvite(eventName: string) {
+  return eventName === "order_created";
+}
+
 export async function POST(req: Request) {
   const env = getLemonSqueezyEnv();
   const signature = (req.headers.get("X-Signature") ?? "").toLowerCase();
@@ -109,6 +115,7 @@ export async function POST(req: Request) {
   }
 
   const mappedStatus = mapEventToStatus(eventName);
+  const issueInvite = shouldIssueInvite(eventName);
 
   const headerEventId =
     req.headers.get("X-Event-Id") ??
@@ -144,11 +151,6 @@ export async function POST(req: Request) {
     );
   }
 
-  // Ignore events we don't care about for subscription gating.
-  if (!mappedStatus) {
-    return NextResponse.json({ ok: true, ignored: true });
-  }
-
   const subscriptionId = getIdStringAt(payload, ["data", "id"]);
   const customerId =
     getIdStringAt(payload, ["data", "attributes", "customer_id"]) ??
@@ -160,6 +162,42 @@ export async function POST(req: Request) {
     getStringAt(payload, ["data", "attributes", "email"]);
 
   const email = emailRaw ? emailRaw.toLowerCase() : undefined;
+
+  const checkoutId = getIdStringAt(payload, ["data", "attributes", "checkout_id"]);
+  const orderId = getIdStringAt(payload, ["data", "attributes", "order_id"]);
+
+  if (issueInvite && email) {
+    try {
+      const inviteEnv = getRegisterInviteEnv();
+      const token = createRegisterInviteToken();
+      const expiresAt = new Date(Date.now() + inviteEnv.REGISTER_INVITE_TOKEN_TTL_HOURS * 60 * 60 * 1000);
+
+      const { error: inviteInsertError } = await supabase.from("register_invites").insert({
+        token,
+        email,
+        source: eventName,
+        checkout_id: checkoutId,
+        order_id: orderId,
+        expires_at: expiresAt.toISOString(),
+      });
+
+      if (!inviteInsertError) {
+        await sendRegisterInviteEmail({
+          to: email,
+          token,
+          expiresAtIso: expiresAt.toISOString(),
+        });
+      }
+    } catch {
+      // Invite email is best-effort; webhook should still proceed.
+    }
+  }
+
+  // Ignore events we don't care about for subscription gating.
+  // (Invite emails above are still allowed for events like `order_created`.)
+  if (!mappedStatus) {
+    return NextResponse.json({ ok: true, ignored: true });
+  }
 
   const renewsAt = getStringAt(payload, ["data", "attributes", "renews_at"]);
   const endsAt = getStringAt(payload, ["data", "attributes", "ends_at"]);
