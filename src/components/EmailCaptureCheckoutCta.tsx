@@ -126,89 +126,108 @@ function EmailCaptureModal({
     <div
       role="dialog"
       aria-modal="true"
-      className="fixed inset-0 z-[2147483647] flex items-center justify-center p-4"
+      aria-labelledby="checkout-modal-title"
+      className="fixed inset-0 z-[2147483647] flex items-center justify-center bg-black/80 p-4 backdrop-blur-sm"
     >
       <button
         type="button"
         aria-label="Close"
         onClick={onClose}
-        className="absolute inset-0 bg-black/65 backdrop-blur-md"
+        className="absolute inset-0"
       />
-      <div className="relative w-full max-w-md max-h-[calc(100vh-2rem)] overflow-y-auto rounded-2xl border border-zinc-200 bg-white p-6 shadow-2xl">
-        <div className="mb-5">
-          <h2 className="text-xl font-semibold tracking-tight text-zinc-900">
-            Get instant access
-          </h2>
-          <p className="mt-1 text-sm text-zinc-600">
+      <div className="relative w-full max-w-lg overflow-hidden rounded-[2.5rem] border border-primary/20 bg-modal-bg p-8 md:p-12 modal-gold-glow">
+        <div className="absolute -top-24 -left-24 h-48 w-48 rounded-full bg-primary/10 blur-[80px]" />
+        <div className="relative z-10">
+          <div className="mb-4 flex items-center gap-3">
+            <h2 id="checkout-modal-title" className="text-3xl font-extrabold text-white md:text-4xl">
+              Get instant access
+            </h2>
+            <div className="rounded-lg bg-primary/20 p-1.5">
+              <span className="material-symbols-outlined text-xl font-bold text-primary">bolt</span>
+            </div>
+          </div>
+          <p className="mb-10 text-lg leading-relaxed text-white/60">
             Enter your email to start checkout and unlock the full ProfitMRR library.
           </p>
-        </div>
 
-        <form onSubmit={onSubmit} className="flex flex-col gap-4">
-          <label className="flex flex-col gap-1">
-            <span className="text-sm font-medium text-zinc-800">Email</span>
-            <input
-              ref={emailRef}
-              type="email"
-              required
-              autoComplete="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              className="h-11 rounded-xl border border-zinc-200 px-3 text-zinc-900 outline-none ring-zinc-900/10 focus:ring-4"
-              placeholder="you@example.com"
-            />
-          </label>
-
-          <label className="flex flex-col gap-1">
-            <span className="text-sm font-medium text-zinc-800">
-              Name <span className="font-normal text-zinc-500">(optional)</span>
-            </span>
-            <input
-              type="text"
-              autoComplete="name"
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              className="h-11 rounded-xl border border-zinc-200 px-3 text-zinc-900 outline-none ring-zinc-900/10 focus:ring-4"
-              placeholder="Your name"
-            />
-          </label>
-
-          {error ? (
-            <div className="rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
-              {error}
+          <form onSubmit={onSubmit} className="space-y-6">
+            <div className="space-y-2">
+              <label htmlFor="checkout-email" className="ml-1 block text-sm font-bold text-white/90">
+                Email
+              </label>
+              <input
+                id="checkout-email"
+                ref={emailRef}
+                type="email"
+                required
+                autoComplete="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                className="w-full rounded-2xl border border-white/10 bg-white/5 px-6 py-4 text-white placeholder:text-white/30 transition-all focus:border-primary/50 focus:outline-none focus:ring-1 focus:ring-primary/50"
+                placeholder="you@example.com"
+              />
             </div>
-          ) : null}
 
-          <button
-            type="submit"
-            disabled={!canSubmit}
-            className="inline-flex h-11 items-center justify-center rounded-xl bg-zinc-900 px-4 text-sm font-semibold text-white shadow-sm transition hover:bg-zinc-800 disabled:cursor-not-allowed disabled:opacity-60"
-          >
-            {loading ? "Starting checkout…" : "Continue to checkout"}
-          </button>
+            <div className="space-y-2">
+              <label htmlFor="checkout-name" className="ml-1 block text-sm font-bold text-white/90">
+                Name <span className="font-medium text-white/40">(optional)</span>
+              </label>
+              <input
+                id="checkout-name"
+                type="text"
+                autoComplete="name"
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                className="w-full rounded-2xl border border-white/10 bg-white/5 px-6 py-4 text-white placeholder:text-white/30 transition-all focus:border-primary/50 focus:outline-none focus:ring-1 focus:ring-primary/50"
+                placeholder="Your name"
+              />
+            </div>
 
-          <p className="text-xs leading-5 text-zinc-500">
-            By continuing, you agree to our{" "}
-            <Link href="/terms" className="underline">
-              Terms
-            </Link>
-            {" "}and{" "}
-            <Link href="/privacy" className="underline">
-              Privacy Policy
-            </Link>
-            .
-          </p>
-        </form>
+            {error ? (
+              <div className="rounded-2xl border border-red-500/40 bg-red-500/10 px-4 py-3 text-sm text-red-200">
+                {error}
+              </div>
+            ) : null}
 
-        <div className="mt-4 border-t border-zinc-100 pt-4">
-          <p className="text-xs text-zinc-500">
-            Already purchased?{" "}
-            <Link href="/register" className="font-medium text-zinc-900 underline">
-              Create your account
-            </Link>
-            {" "}using the same email.
-          </p>
+            <button
+              type="submit"
+              disabled={!canSubmit}
+              className="mt-4 w-full rounded-2xl bg-primary py-5 text-lg font-extrabold text-black shadow-lg shadow-primary/20 transition-all hover:scale-[1.01] hover:bg-primary/90 active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-60"
+            >
+              {loading ? "Starting checkout…" : "Continue to checkout"}
+            </button>
+          </form>
+
+          <div className="mt-8 space-y-4 border-t border-white/5 pt-8">
+            <p className="text-center text-sm text-white/40">
+              By continuing, you agree to our{" "}
+              <Link href="/terms" className="underline hover:text-white">
+                Terms
+              </Link>{" "}
+              and{" "}
+              <Link href="/privacy" className="underline hover:text-white">
+                Privacy Policy
+              </Link>
+              .
+            </p>
+            <p className="text-center text-sm text-white/60">
+              Already purchased?{" "}
+              <Link href="/register" className="font-bold text-primary hover:underline">
+                Create your account
+              </Link>{" "}
+              using the same email.
+            </p>
+          </div>
         </div>
+
+        <button
+          type="button"
+          aria-label="Close modal"
+          onClick={onClose}
+          className="absolute top-6 right-6 text-white/20 transition-colors hover:text-white"
+        >
+          <span className="material-symbols-outlined">close</span>
+        </button>
       </div>
     </div>,
     document.body,
