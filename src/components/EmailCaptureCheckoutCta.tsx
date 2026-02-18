@@ -126,7 +126,7 @@ function EmailCaptureModal({
     <div
       role="dialog"
       aria-modal="true"
-      className="fixed inset-0 z-[2147483647] flex items-start justify-center px-4 pt-6 sm:pt-10"
+      className="fixed inset-0 z-[2147483647] flex items-center justify-center p-4"
     >
       <button
         type="button"
@@ -134,7 +134,7 @@ function EmailCaptureModal({
         onClick={onClose}
         className="absolute inset-0 bg-black/65 backdrop-blur-md"
       />
-      <div className="relative w-full max-w-md rounded-2xl border border-zinc-200 bg-white p-6 shadow-2xl">
+      <div className="relative w-full max-w-md max-h-[calc(100vh-2rem)] overflow-y-auto rounded-2xl border border-zinc-200 bg-white p-6 shadow-2xl">
         <div className="mb-5">
           <h2 className="text-xl font-semibold tracking-tight text-zinc-900">
             Get instant access
