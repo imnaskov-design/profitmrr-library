@@ -116,13 +116,13 @@ function EmailCaptureModal({
     <div
       role="dialog"
       aria-modal="true"
-      className="fixed inset-0 z-50 flex items-center justify-center px-4"
+      className="fixed inset-0 z-[9999] flex items-start justify-center px-4 pt-20 sm:pt-24"
     >
       <button
         type="button"
         aria-label="Close"
         onClick={onClose}
-        className="absolute inset-0 bg-black/50"
+        className="absolute inset-0 bg-black/65 backdrop-blur-[2px]"
       />
       <div className="relative w-full max-w-md rounded-2xl border border-zinc-200 bg-white p-6 shadow-xl">
         <div className="mb-5">

@@ -1,10 +1,10 @@
 import { LandingHtmlBridge } from "@/components/LandingHtmlBridge";
 
-const LANDING_PAGE_HTML = String.raw`<nav class="fixed top-0 w-full z-50 glass-card border-b border-white/5">
+const LANDING_PAGE_HTML = String.raw`<nav class="fixed top-0 w-full z-50 glass-card landing-nav-blur">
 <div class="max-w-7xl mx-auto px-6 h-20 flex items-center justify-between">
 <div class="flex items-center gap-3">
-<div class="bg-primary p-1.5 rounded-lg">
-<span class="material-symbols-outlined text-background-dark font-bold">account_balance_wallet</span>
+<div class="bg-primary p-1.5 rounded-lg size-14 flex items-center justify-center overflow-hidden">
+<img src="/profit-mrr-logo.png" alt="Profit MRR Logo" class="w-full h-full object-contain"/>
 </div>
 <h1 class="text-xl font-800 tracking-tight text-white uppercase">Profit<span class="text-primary">MRR</span></h1>
 </div>
@@ -448,8 +448,8 @@ const LANDING_PAGE_HTML = String.raw`<nav class="fixed top-0 w-full z-50 glass-c
 <div class="max-w-7xl mx-auto grid grid-cols-1 md:grid-cols-4 gap-16">
 <div class="space-y-6">
 <div class="flex items-center gap-3">
-<div class="bg-primary p-1 rounded-lg">
-<span class="material-symbols-outlined text-background-dark text-sm font-bold">account_balance_wallet</span>
+<div class="bg-primary p-1 rounded-lg size-10 flex items-center justify-center overflow-hidden">
+<img src="/profit-mrr-logo.png" alt="Profit MRR Logo" class="w-full h-full object-contain"/>
 </div>
 <h1 class="text-lg font-800 tracking-tight text-white uppercase">Profit<span class="text-primary">MRR</span></h1>
 </div>
