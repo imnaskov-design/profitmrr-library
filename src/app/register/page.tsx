@@ -2,12 +2,12 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { Suspense, useState } from "react";
 import { useSearchParams } from "next/navigation";
 
 import { createSupabaseBrowserClient } from "@/lib/supabase/browser";
 
-export default function RegisterPage() {
+function RegisterPageContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
 
@@ -191,6 +191,23 @@ export default function RegisterPage() {
         </div>
       </div>
     </div>
+  );
+}
+
+function RegisterPageFallback() {
+  return (
+    <div className="relative flex min-h-screen items-center justify-center overflow-hidden bg-background-dark px-6 py-12">
+      <div className="absolute left-1/2 top-1/2 h-[500px] w-[500px] -translate-x-1/2 -translate-y-1/2 rounded-full bg-[radial-gradient(circle,rgba(255,193,7,0.06)_0%,rgba(255,193,7,0)_70%)]" />
+      <div className="relative z-10 text-sm text-white/60">Loading registration form…</div>
+    </div>
+  );
+}
+
+export default function RegisterPage() {
+  return (
+    <Suspense fallback={<RegisterPageFallback />}>
+      <RegisterPageContent />
+    </Suspense>
   );
 }
 
