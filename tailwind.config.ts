@@ -1,25 +1,42 @@
 import type { Config } from "tailwindcss";
 
 const config: Config = {
+  darkMode: "class",
   content: ["./src/**/*.{js,ts,jsx,tsx,mdx}"],
   theme: {
     extend: {
-      // Color palette - Zinc base + Indigo/Violet accents
+      // Color palette - Gold/Yellow primary + Dark theme
       colors: {
-        // Zinc scale (already available in Tailwind, but we extend)
-        surface: {
-          50: "#fafafa",
-          100: "#f4f4f5",
-          200: "#e4e4e7",
-          300: "#d4d4d8",
-          400: "#a1a1aa",
-          500: "#71717a",
-          600: "#52525b",
-          700: "#3f3f46",
-          800: "#27272a",
-          900: "#18181b",
-          950: "#09090b",
+        // Primary gold color
+        primary: {
+          DEFAULT: "#ffc105",
+          50: "#fff9e6",
+          100: "#fff0cc",
+          200: "#ffe099",
+          300: "#ffd166",
+          400: "#ffc233",
+          500: "#ffc105",
+          600: "#cc9a04",
+          700: "#997303",
+          800: "#664d02",
+          900: "#332601",
         },
+        // Background colors
+        "background-dark": "#0a0a0a",
+        "background-light": "#f8f8f5",
+        // Surface color
+        surface: {
+          DEFAULT: "#161616",
+          50: "#2a2a2a",
+          100: "#242424",
+          200: "#1e1e1e",
+          300: "#181818",
+          400: "#161616",
+          500: "#101010",
+          600: "#0a0a0a",
+        },
+        // Border gold
+        "border-gold": "rgba(255, 193, 5, 0.2)",
         // Glass overlay colors
         glass: {
           white: "rgba(255, 255, 255, 0.7)",
@@ -28,7 +45,7 @@ const config: Config = {
           black: "rgba(0, 0, 0, 0.3)",
           blackLight: "rgba(0, 0, 0, 0.2)",
         },
-        // Brand accent colors - Indigo/Violet
+        // Brand accent colors - Indigo/Violet (keeping for other uses)
         accent: {
           50: "#eef2ff",
           100: "#e0e7ff",
@@ -61,6 +78,7 @@ const config: Config = {
       fontFamily: {
         sans: ["var(--font-geist-sans)", "system-ui", "sans-serif"],
         mono: ["var(--font-geist-mono)", "monospace"],
+        display: ["Manrope", "sans-serif"],
       },
       // Animation keyframes
       animation: {

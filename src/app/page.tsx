@@ -7,415 +7,560 @@ import { StaggerReveal, Reveal } from "@/components/ui/StaggerReveal";
 
 export default function HomePage() {
   return (
-    <div className="min-h-screen bg-white">
-      {/* Animated background */}
+    <div className="min-h-screen bg-background-dark font-display text-white">
+      {/* Animated background spotlight */}
       <div className="fixed inset-0 -z-10 overflow-hidden">
-        <div className="absolute -top-[40%] -left-[20%] h-[80%] w-[60%] rounded-full bg-indigo-100/50 blur-3xl animate-pulse" />
-        <div className="absolute top-[20%] -right-[10%] h-[50%] w-[40%] rounded-full bg-violet-100/50 blur-3xl animate-pulse" style={{ animationDelay: "1s" }} />
-        <div className="absolute -bottom-[20%] left-[20%] h-[40%] w-[40%] rounded-full bg-indigo-50/50 blur-3xl animate-pulse" style={{ animationDelay: "2s" }} />
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[500px] h-[500px] bg-primary/10 blur-[120px] -z-10 rounded-full" />
       </div>
 
-      {/* Header */}
-      <header className="sticky top-0 z-50 border-b border-zinc-200/60 bg-white/80 backdrop-blur-xl">
-        <div className="mx-auto flex max-w-6xl items-center justify-between px-4 py-4">
-          <Reveal delay={0}>
-            <Link href="/" className="text-lg font-bold tracking-tight text-zinc-900">
-              <span className="bg-gradient-to-r from-indigo-600 to-violet-600 bg-clip-text text-transparent">
-                ProfitMRR
-              </span>{" "}
-              Library
-            </Link>
-          </Reveal>
+      {/* Navigation */}
+      <nav className="fixed top-0 w-full z-50 glass-card border-b border-white/5">
+        <div className="max-w-7xl mx-auto px-6 h-20 flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <Reveal delay={100}>
-              <Link
-                href="/login"
-                className="text-sm font-medium text-zinc-600 transition-colors hover:text-zinc-900"
-              >
-                Member login
-              </Link>
-            </Reveal>
-            <Reveal delay={200}>
-              <EmailCaptureCheckoutCta
-                source="nav"
-                buttonLabel="Access The Full Library"
-                buttonClassName="inline-flex h-10 items-center justify-center rounded-xl bg-gradient-to-r from-indigo-500 to-violet-500 px-4 text-sm font-semibold text-white shadow-lg shadow-indigo-500/25 transition-all hover:shadow-indigo-500/40 hover:shadow-xl hover:scale-[1.02] active:scale-[0.98]"
-              />
-            </Reveal>
+            <div className="bg-primary p-1.5 rounded-lg">
+              <span className="material-symbols-outlined text-background-dark font-bold">account_balance_wallet</span>
+            </div>
+            <h1 className="text-xl font-800 tracking-tight text-white uppercase">Profit<span className="text-primary">MRR</span></h1>
+          </div>
+          <div className="hidden md:flex items-center gap-10">
+            <a className="text-sm font-semibold text-white/70 hover:text-primary transition-colors" href="#">Library</a>
+            <a className="text-sm font-semibold text-white/70 hover:text-primary transition-colors" href="#">Monthly Drops</a>
+            <a className="text-sm font-semibold text-white/70 hover:text-primary transition-colors" href="#">How It Works</a>
+            <a className="text-sm font-semibold text-white/70 hover:text-primary transition-colors" href="#">Pricing</a>
+          </div>
+          <div className="flex items-center gap-4">
+            <Link href="/login" className="hidden sm:block text-sm font-bold text-white px-4 py-2 hover:text-primary transition-colors">
+              Login
+            </Link>
+            <EmailCaptureCheckoutCta
+              source="nav"
+              buttonLabel="Join Now"
+              buttonClassName="bg-primary hover:bg-primary/90 text-background-dark px-6 py-2.5 rounded-lg text-sm font-bold transition-all gold-glow"
+            />
           </div>
         </div>
-      </header>
+      </nav>
 
       <main>
         {/* Hero Section */}
-        <section className="relative overflow-hidden py-16 md:py-24 lg:py-32">
-          <div className="mx-auto max-w-6xl px-4">
-            <StaggerReveal delay={100} stagger={80} className="grid gap-10 md:grid-cols-2 md:items-center">
-              <div className="text-center md:text-left">
-                <Reveal delay={100}>
-                  <span className="inline-flex items-center rounded-full border border-indigo-200 bg-indigo-50 px-3 py-1 text-sm font-medium text-indigo-700 shadow-sm">
-                    <span className="mr-2 h-2 w-2 animate-pulse rounded-full bg-indigo-500" />
-                    Built for Etsy sellers who want the smarter way
-                  </span>
-                </Reveal>
-                
-                <Reveal delay={200}>
-                  <h1 className="mt-6 text-4xl font-bold tracking-tight text-zinc-900 md:text-5xl lg:text-6xl">
-                    Own an Entire{" "}
-                    <span className="bg-gradient-to-r from-indigo-600 via-violet-500 to-indigo-600 bg-clip-text text-transparent">
-                      Digital Product Empire
-                    </span>{" "}
-                    — Without Creating Anything
-                  </h1>
-                </Reveal>
-                
-                <Reveal delay={300}>
-                  <p className="mt-5 text-lg leading-8 text-zinc-600 md:text-xl">
-                    Instant access to a growing PLR & MRR library you can resell and keep 100% profit — updated monthly.
-                  </p>
-                </Reveal>
-
-                <Reveal delay={400}>
-                  <div className="mt-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-center md:justify-start">
-                    <EmailCaptureCheckoutCta 
-                      source="hero"
-                      buttonClassName="h-12 px-6 text-base font-semibold rounded-xl bg-gradient-to-r from-indigo-500 to-violet-500 text-white shadow-lg shadow-indigo-500/25 transition-all hover:shadow-indigo-500/40 hover:shadow-xl hover:scale-[1.02] active:scale-[0.98]"
-                    />
-                    <Link
-                      href="/register"
-                      className="inline-flex h-12 items-center justify-center rounded-xl border border-zinc-200 bg-white/80 px-6 text-base font-semibold text-zinc-700 backdrop-blur-sm transition-all hover:bg-white hover:border-zinc-300 hover:shadow-lg"
-                    >
-                      Already purchased? Create account
-                    </Link>
-                  </div>
-                </Reveal>
-
-                <Reveal delay={500}>
-                  <div className="mt-6 flex flex-col gap-2 text-sm text-zinc-500">
-                    <p>
-                      <span className="font-semibold text-zinc-900">$99.90/year</span>
-                      {" "}
-                      <span className="text-zinc-400">(less than $0.30/day)</span>
-                    </p>
-                    <p className="text-xs">
-                      Includes: full library access, monthly drops, training, community, and starter packs.
-                    </p>
-                  </div>
-                </Reveal>
-              </div>
-
-              {/* Value card - right side */}
-              <Reveal delay={300} className="hidden md:block">
-                <GlassCard hover glow padding="lg" className="relative overflow-hidden">
-                  {/* Decorative gradient */}
-                  <div className="absolute -top-20 -right-20 h-40 w-40 rounded-full bg-gradient-to-br from-indigo-200 to-violet-200 blur-2xl" />
-                  
-                  <h2 className="relative text-lg font-semibold text-zinc-900">What you get</h2>
-                  <ul className="relative mt-4 space-y-4">
-                    {[
-                      { title: "Full PLR + MRR library", desc: "Ready-to-sell digital products." },
-                      { title: "Resell rights", desc: "Keep 100% profit per item." },
-                      { title: "Monthly drops", desc: "New products added every month." },
-                      { title: "Training hub", desc: "Simple guides to list, price, and sell." },
-                      { title: "Community access", desc: "Share what's working, request packs." },
-                      { title: "Starter packs", desc: "Curated bundles to publish fast." },
-                    ].map((item, i) => (
-                      <li key={i} className="flex gap-3">
-                        <span className="mt-1 flex h-5 w-5 flex-shrink-0 items-center justify-center rounded-full bg-gradient-to-r from-indigo-500 to-violet-500 text-white">
-                          <svg className="h-3 w-3" fill="currentColor" viewBox="0 0 20 20">
-                            <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
-                          </svg>
-                        </span>
-                        <span>
-                          <span className="font-medium text-zinc-900">{item.title}</span>
-                          <span className="text-zinc-500"> — {item.desc}</span>
-                        </span>
-                      </li>
-                    ))}
-                  </ul>
-
-                  <div className="relative mt-6 rounded-xl border border-amber-200/50 bg-amber-50/80 p-4 text-sm leading-5 text-amber-900 backdrop-blur-sm">
-                    <p className="font-semibold">Important disclaimers</p>
-                    <p className="mt-1 text-amber-800">
-                      This library provides PLR/MRR products with usage rights. Rights vary by item — always review the included license. No guaranteed income.
-                    </p>
-                  </div>
-                </GlassCard>
+        <section className="relative pt-40 pb-20 px-6 overflow-hidden spotlight">
+          <div className="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-2 gap-16 items-center">
+            <div className="flex flex-col space-y-8 z-20">
+              <Reveal delay={0}>
+                <div className="inline-flex items-center gap-3 px-4 py-1.5 rounded-full bg-white/5 border border-white/10 w-fit">
+                  <span className="text-[11px] font-bold uppercase tracking-[0.15em] text-primary/80">900+ Ready-To-Sell Products • Unlimited Downloads • Monthly Drops</span>
+                </div>
               </Reveal>
-            </StaggerReveal>
-          </div>
-        </section>
-
-        {/* What's inside */}
-        <section className="border-t border-zinc-100 bg-white/50 py-16 backdrop-blur-sm">
-          <div className="mx-auto max-w-6xl px-4">
-            <Reveal delay={0}>
-              <h2 className="text-center text-3xl font-bold tracking-tight text-zinc-900">What's inside</h2>
-              <p className="mt-2 text-center text-zinc-600">
-                A growing set of product categories designed to help you publish consistently.
-              </p>
-            </Reveal>
-
-            <StaggerReveal delay={100} stagger={60} className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-              {[
-                { name: "Ebooks", desc: "Ready-to-use assets you can brand, list, and sell." },
-                { name: "Courses", desc: "Complete digital courses with PLR rights." },
-                { name: "Canva Templates", desc: "Beautiful templates ready for customization." },
-                { name: "Planners", desc: "Printable and digital planners for any niche." },
-                { name: "Social Media Kits", desc: "Engaging content packs for your channels." },
-                { name: "AI Prompts", desc: "Curated prompts for maximum AI output." },
-                { name: "Marketing Bundles", desc: "Ready-made campaigns to boost sales." },
-              ].map((item) => (
-                <GlassCard key={item.name} hover padding="md" className="group">
-                  <p className="text-base font-semibold text-zinc-900">{item.name}</p>
-                  <p className="mt-1 text-sm text-zinc-600">{item.desc}</p>
-                  <div className="mt-3 flex items-center text-sm font-medium text-indigo-600 opacity-0 transition-opacity group-hover:opacity-100">
-                    Explore category
-                    <svg className="ml-1 h-4 w-4 transition-transform group-hover:translate-x-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                    </svg>
-                  </div>
-                </GlassCard>
-              ))}
-            </StaggerReveal>
-          </div>
-        </section>
-
-        {/* How it works */}
-        <section className="border-t border-zinc-100 bg-gradient-to-b from-zinc-50 to-white py-16">
-          <div className="mx-auto max-w-6xl px-4">
-            <Reveal delay={0}>
-              <h2 className="text-center text-3xl font-bold tracking-tight text-zinc-900">How it works</h2>
-            </Reveal>
-
-            <StaggerReveal delay={100} stagger={100} className="mt-8 grid gap-4 md:grid-cols-3">
-              {[
-                {
-                  step: "01",
-                  title: "Join",
-                  desc: "Start your annual membership for $99.90/year (less than $0.30/day).",
-                  icon: (
-                    <svg className="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z" />
-                    </svg>
-                  )
-                },
-                {
-                  step: "02",
-                  title: "Access",
-                  desc: "Browse the library, starter packs, and monthly drops from your dashboard.",
-                  icon: (
-                    <svg className="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
-                    </svg>
-                  )
-                },
-                {
-                  step: "03",
-                  title: "Download & Resell",
-                  desc: "Download products, follow the included license, and sell on Etsy or beyond.",
-                  icon: (
-                    <svg className="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
-                    </svg>
-                  )
-                },
-              ].map((item) => (
-                <GlassCard key={item.step} hover padding="lg" className="relative">
-                  <div className="absolute -top-3 -left-2 flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-r from-indigo-500 to-violet-500 text-white shadow-lg shadow-indigo-500/30">
-                    {item.icon}
-                  </div>
-                  <div className="mt-4">
-                    <p className="text-xs font-medium uppercase tracking-wider text-indigo-600">{item.step}</p>
-                    <p className="mt-2 text-lg font-semibold text-zinc-900">{item.title}</p>
-                    <p className="mt-2 text-sm text-zinc-600">{item.desc}</p>
-                  </div>
-                </GlassCard>
-              ))}
-            </StaggerReveal>
-          </div>
-        </section>
-
-        {/* Monthly drops */}
-        <section className="border-t border-zinc-100 bg-white py-16">
-          <div className="mx-auto max-w-6xl px-4">
-            <StaggerReveal delay={0} className="grid gap-10 md:grid-cols-2 md:items-center">
-              <div>
-                <Reveal delay={100}>
-                  <h2 className="text-3xl font-bold tracking-tight text-zinc-900">Monthly drops</h2>
-                </Reveal>
-                <Reveal delay={200}>
-                  <p className="mt-3 text-zinc-600">
-                    Your membership stays valuable because the library keeps growing. Every month we add new products and fresh packs you can list quickly.
-                  </p>
-                </Reveal>
-                <Reveal delay={300}>
-                  <p className="mt-3 text-sm text-zinc-500">
-                    Cancel anytime — if you cancel, you keep access until the end of your current paid period.
-                  </p>
-                </Reveal>
-              </div>
+              
+              <Reveal delay={100}>
+                <h1 className="text-6xl lg:text-7xl font-800 leading-[1] tracking-tight text-white">
+                  Access A Full <br/>
+                  <span className="gold-gradient-text italic">Digital Product</span> <br/>
+                  Empire
+                </h1>
+              </Reveal>
+              
+              <Reveal delay={200}>
+                <p className="text-xl text-white/60 max-w-xl leading-relaxed">
+                  Skip the creation process. Download high-converting digital assets, rebrand them as your own, and keep 100% of every sale you make.
+                </p>
+              </Reveal>
+              
               <Reveal delay={300}>
-                <GlassCard padding="lg" className="relative overflow-hidden">
-                  <div className="absolute -top-10 -right-10 h-32 w-32 rounded-full bg-gradient-to-br from-violet-200 to-indigo-200 blur-2xl" />
-                  <p className="relative text-base font-semibold text-zinc-900">Retention made simple</p>
-                  <ul className="relative mt-4 space-y-3 text-sm text-zinc-700">
-                    {[
-                      'New releases flagged "New This Month"',
-                      'Starter packs updated as the library grows',
-                      'Training modules to help you sell smarter',
-                    ].map((item, i) => (
-                      <li key={i} className="flex items-start gap-2">
-                        <span className="mt-0.5 flex h-4 w-4 flex-shrink-0 items-center justify-center rounded-full bg-indigo-100 text-indigo-600">
-                          <svg className="h-2.5 w-2.5" fill="currentColor" viewBox="0 0 20 20">
-                            <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
-                          </svg>
-                        </span>
-                        {item}
-                      </li>
-                    ))}
-                  </ul>
-                </GlassCard>
+                <div className="flex flex-col sm:flex-row gap-4">
+                  <EmailCaptureCheckoutCta 
+                    source="hero"
+                    buttonLabel="Access Full Products Library"
+                    buttonClassName="bg-primary text-background-dark px-8 py-5 rounded-xl text-lg font-bold transition-all hover:scale-[1.02] gold-glow flex items-center justify-center gap-3"
+                  />
+                  <GlassButton 
+                    variant="outline"
+                    className="text-white px-8 py-5 rounded-xl text-lg font-bold border border-white/10 hover:bg-white/5 transition-all flex items-center justify-center gap-2"
+                  >
+                    See What's Inside
+                  </GlassButton>
+                </div>
               </Reveal>
-            </StaggerReveal>
+              
+              <Reveal delay={400}>
+                <div className="flex flex-wrap items-center gap-8 pt-4">
+                  <div className="flex items-center gap-2">
+                    <span className="material-symbols-outlined text-primary text-xl">bolt</span>
+                    <span className="text-sm font-semibold text-white/80">Instant access</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <span className="material-symbols-outlined text-primary text-xl">payments</span>
+                    <span className="text-sm font-semibold text-white/80">Keep 100% profit</span>
+                  </div>
+                </div>
+              </Reveal>
+            </div>
+            
+            {/* Hero Image/Dashboard */}
+            <div className="relative lg:h-[700px] flex items-center justify-center z-10">
+              <div className="relative w-full max-w-lg bg-surface rounded-2xl border border-white/10 p-4 shadow-2xl">
+                <div className="w-full aspect-video bg-background-dark rounded-xl overflow-hidden border border-white/5">
+                  <div className="w-full h-full bg-gradient-to-br from-surface to-background-dark flex items-center justify-center">
+                    <div className="text-center p-8">
+                      <div className="text-4xl font-800 text-primary mb-2">$127,450</div>
+                      <div className="text-white/60 text-sm">Total Revenue Generated</div>
+                      <div className="mt-4 flex justify-center gap-2">
+                        <div className="h-2 w-2 rounded-full bg-primary animate-pulse"></div>
+                        <div className="h-2 w-2 rounded-full bg-primary/50"></div>
+                        <div className="h-2 w-2 rounded-full bg-primary/30"></div>
+                        <div className="h-2 w-2 rounded-full bg-primary/20"></div>
+                        <div className="h-2 w-2 rounded-full bg-primary/10"></div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+                {/* Floating product card 1 */}
+                <div className="absolute -top-12 -right-16 glass-card p-4 rounded-2xl gold-glow border-primary/30 w-56 -rotate-3 transition-transform hover:rotate-0">
+                  <div className="w-full h-32 bg-gradient-to-r from-primary/20 to-primary/10 rounded-lg mb-3 flex items-center justify-center">
+                    <span className="material-symbols-outlined text-primary text-4xl">shopping_bag</span>
+                  </div>
+                  <div className="flex justify-between items-center">
+                    <p className="text-[10px] font-black uppercase text-primary">Best Seller</p>
+                    <p className="text-[10px] text-white/50">MRR</p>
+                  </div>
+                </div>
+                {/* Floating product card 2 */}
+                <div className="absolute -bottom-10 -left-12 glass-card p-4 rounded-2xl border-white/10 w-52 rotate-6 transition-transform hover:rotate-0">
+                  <div className="w-full h-28 bg-gradient-to-r from-violet-500/20 to-violet-500/10 rounded-lg mb-3 flex items-center justify-center">
+                    <span className="material-symbols-outlined text-violet-400 text-3xl">videocam</span>
+                  </div>
+                  <p className="text-xs font-bold text-white">Viral Reels Bundle</p>
+                </div>
+              </div>
+              <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[500px] h-[500px] bg-primary/10 blur-[120px] -z-10 rounded-full"></div>
+            </div>
           </div>
         </section>
 
-        {/* For Etsy buyers */}
-        <section className="border-t border-zinc-100 bg-gradient-to-b from-zinc-50 to-white py-16">
-          <div className="mx-auto max-w-6xl px-4">
-            <Reveal delay={0}>
-              <h2 className="text-3xl font-bold tracking-tight text-zinc-900">For Etsy buyers</h2>
-              <p className="mt-3 text-zinc-600">
-                You found us from Etsy — here's the smarter way.
-              </p>
-            </Reveal>
-
-            <StaggerReveal delay={100} stagger={100} className="mt-8 grid gap-4 md:grid-cols-2">
-              <GlassCard hover padding="lg">
-                <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-amber-100 text-amber-600">
-                  <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                  </svg>
+        {/* Stats Bar */}
+        <div className="bg-surface/50 border-y border-white/5 py-10 relative overflow-hidden">
+          <div className="max-w-7xl mx-auto px-6">
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-8">
+              <Reveal delay={0}>
+                <div className="flex items-center gap-4 group">
+                  <div className="size-12 rounded-xl bg-primary/10 flex items-center justify-center text-primary border border-primary/20">
+                    <span className="material-symbols-outlined">package_2</span>
+                  </div>
+                  <div>
+                    <div className="text-2xl font-800 text-white">900+</div>
+                    <div className="text-[11px] font-bold text-white/40 uppercase tracking-widest">Product Bundles</div>
+                  </div>
                 </div>
-                <p className="mt-4 text-base font-semibold text-zinc-900">Stop buying one-by-one</p>
-                <p className="mt-2 text-sm text-zinc-600">
-                  Instead of spending $7–$39 repeatedly on individual products, unlock a full library you can use across niches and seasons.
-                </p>
-              </GlassCard>
-
-              <GlassCard hover padding="lg">
-                <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-indigo-100 text-indigo-600">
-                  <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M13 10V3L4 14h7v7l9-11h-7z" />
-                  </svg>
+              </Reveal>
+              <Reveal delay={100}>
+                <div className="flex items-center gap-4 group">
+                  <div className="size-12 rounded-xl bg-primary/10 flex items-center justify-center text-primary border border-primary/20">
+                    <span className="material-symbols-outlined">trending_up</span>
+                  </div>
+                  <div>
+                    <div className="text-2xl font-800 text-white">2,700+</div>
+                    <div className="text-[11px] font-bold text-white/40 uppercase tracking-widest">Sales Generated</div>
+                  </div>
                 </div>
-                <p className="mt-4 text-base font-semibold text-zinc-900">Move faster</p>
-                <p className="mt-2 text-sm text-zinc-600">
-                  Grab a starter pack, list today, then keep building your shop with monthly drops and training.
-                </p>
-              </GlassCard>
-            </StaggerReveal>
+              </Reveal>
+              <Reveal delay={200}>
+                <div className="flex items-center gap-4 group">
+                  <div className="size-12 rounded-xl bg-primary/10 flex items-center justify-center text-primary border border-primary/20">
+                    <span className="material-symbols-outlined">star</span>
+                  </div>
+                  <div>
+                    <div className="text-2xl font-800 text-white">4.9/5</div>
+                    <div className="text-[11px] font-bold text-white/40 uppercase tracking-widest">Star Ratings</div>
+                  </div>
+                </div>
+              </Reveal>
+              <Reveal delay={300}>
+                <div className="flex items-center gap-4 group">
+                  <div className="size-12 rounded-xl bg-primary/10 flex items-center justify-center text-primary border border-primary/20">
+                    <span className="material-symbols-outlined">update</span>
+                  </div>
+                  <div>
+                    <div className="text-2xl font-800 text-white">WEEKLY</div>
+                    <div className="text-[11px] font-bold text-white/40 uppercase tracking-widest">Updated Monthly</div>
+                  </div>
+                </div>
+              </Reveal>
+            </div>
+          </div>
+        </div>
+
+        {/* Trending Bundles Section */}
+        <section className="py-24 px-6">
+          <div className="max-w-7xl mx-auto mb-16 flex flex-col md:flex-row items-end justify-between gap-6">
+            <div className="space-y-4">
+              <h2 className="text-primary text-sm font-bold uppercase tracking-[0.2em]">Explore The Vault</h2>
+              <h3 className="text-4xl lg:text-5xl font-800 text-white leading-tight">Trending Profit Bundles</h3>
+            </div>
+            <button className="flex items-center gap-2 text-white/60 hover:text-primary font-bold transition-all border-b border-transparent hover:border-primary pb-1">
+              View All 900+ Products <span className="material-symbols-outlined">arrow_right_alt</span>
+            </button>
+          </div>
+          
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
+            {[
+              {
+                title: "Etsy Proven Products",
+                desc: "50+ High-Demand Templates",
+                tags: ["MRR Included", "Hot"],
+                color: "from-primary/20 to-primary/10"
+              },
+              {
+                title: "High Profit Packs",
+                desc: "Niche-Specific Solutions",
+                tags: ["MRR Included"],
+                color: "from-violet-500/20 to-violet-500/10"
+              },
+              {
+                title: "Viral Reels Bundle",
+                desc: "1,000+ Faceless Reels",
+                tags: ["MRR Included", "Trending"],
+                color: "from-blue-500/20 to-blue-500/10"
+              },
+              {
+                title: "Mastery Kits",
+                desc: "Complete Marketing Systems",
+                tags: ["MRR Included"],
+                color: "from-green-500/20 to-green-500/10"
+              },
+            ].map((item, i) => (
+              <Reveal key={i} delay={i * 100}>
+                <div className="group cursor-pointer">
+                  <div className="relative aspect-[4/5] rounded-2xl overflow-hidden mb-6 border border-white/10">
+                    <div className={`w-full h-full bg-gradient-to-br ${item.color} flex items-center justify-center`}>
+                      <span className="material-symbols-outlined text-white/30 text-6xl">inventory_2</span>
+                    </div>
+                    <div className="absolute top-4 left-4 flex gap-2">
+                      {item.tags.map((tag, tagIndex) => (
+                        <span 
+                          key={tagIndex}
+                          className={`text-[10px] font-black px-2 py-1 rounded tracking-tighter uppercase ${
+                            tag === "Hot" || tag === "Trending" 
+                              ? "bg-blue-500 text-white" 
+                              : "bg-primary text-background-dark"
+                          }`}
+                        >
+                          {tag}
+                        </span>
+                      ))}
+                    </div>
+                    <div className="absolute inset-0 bg-gradient-to-t from-background-dark via-transparent to-transparent opacity-60"></div>
+                  </div>
+                  <h4 className="text-white font-bold text-xl group-hover:text-primary transition-colors">{item.title}</h4>
+                  <p className="text-white/50 text-sm mt-1">{item.desc}</p>
+                </div>
+              </Reveal>
+            ))}
           </div>
         </section>
 
-        {/* FAQ */}
-        <section className="border-t border-zinc-100 bg-white py-16">
-          <div className="mx-auto max-w-3xl px-4">
-            <Reveal delay={0}>
-              <h2 className="text-center text-3xl font-bold tracking-tight text-zinc-900">Frequently Asked Questions</h2>
-            </Reveal>
+        {/* How It Works - 4 Steps */}
+        <section className="py-24 px-6 bg-surface/30">
+          <div className="max-w-7xl mx-auto">
+            <div className="text-center mb-16">
+              <Reveal delay={0}>
+                <h2 className="text-primary text-sm font-bold uppercase tracking-[0.2em] mb-4">The Workflow</h2>
+              </Reveal>
+              <Reveal delay={100}>
+                <h3 className="text-4xl font-800 text-white">4 Steps To Your Empire</h3>
+              </Reveal>
+            </div>
+            
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-8 relative">
+              <div className="absolute top-1/2 left-0 w-full h-0.5 border-t border-dashed border-white/10 -translate-y-1/2 hidden md:block"></div>
+              
+              {[
+                { step: "1", title: "Join", desc: "Gain instant access to the entire vault." },
+                { step: "2", title: "Download", desc: "Pick products from any trending niche." },
+                { step: "3", title: "Upload", desc: "Set your price on Etsy, Shopify, or Stan Store." },
+                { step: "4", title: "Profit", desc: "Keep 100% of every sale you generate." },
+              ].map((item, i) => (
+                <Reveal key={i} delay={i * 100}>
+                  <div className="relative bg-background-dark p-8 rounded-2xl border border-white/10 text-center">
+                    <div className="size-16 rounded-full bg-primary text-background-dark flex items-center justify-center mx-auto mb-6 text-2xl font-black">{item.step}</div>
+                    <h4 className="text-lg font-bold text-white mb-2">{item.title}</h4>
+                    <p className="text-sm text-white/50">{item.desc}</p>
+                  </div>
+                </Reveal>
+              ))}
+            </div>
+          </div>
+        </section>
 
-            <div className="mt-8 space-y-3">
+        {/* Comparison Section */}
+        <section className="py-24 px-6 overflow-hidden">
+          <div className="max-w-7xl mx-auto">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-px bg-white/5 rounded-3xl overflow-hidden border border-white/10">
+              <div className="p-12 lg:p-20 bg-background-dark">
+                <h4 className="text-red-500 font-bold mb-8 flex items-center gap-2">
+                  <span className="material-symbols-outlined">cancel</span> The Old Way
+                </h4>
+                <ul className="space-y-6">
+                  <li className="flex items-start gap-4 text-white/60">
+                    <span className="material-symbols-outlined text-red-500/50">remove</span>
+                    <p>Spend weeks creating products from scratch</p>
+                  </li>
+                  <li className="flex items-start gap-4 text-white/60">
+                    <span className="material-symbols-outlined text-red-500/50">remove</span>
+                    <p>Pay $1,000+ to hire writers and designers</p>
+                  </li>
+                  <li className="flex items-start gap-4 text-white/60">
+                    <span className="material-symbols-outlined text-red-500/50">remove</span>
+                    <p>Limited niches and product options</p>
+                  </li>
+                  <li className="flex items-start gap-4 text-white/60">
+                    <span className="material-symbols-outlined text-red-500/50">remove</span>
+                    <p>Complex licensing legal hurdles</p>
+                  </li>
+                </ul>
+              </div>
+              <div className="p-12 lg:p-20 bg-primary/5 relative">
+                <div className="absolute top-0 right-0 p-8">
+                  <span className="material-symbols-outlined text-primary text-6xl opacity-20">verified</span>
+                </div>
+                <h4 className="text-primary font-bold mb-8 flex items-center gap-2">
+                  <span className="material-symbols-outlined">check_circle</span> The ProfitMRR Way
+                </h4>
+                <ul className="space-y-6">
+                  <li className="flex items-start gap-4 text-white">
+                    <span className="material-symbols-outlined text-primary">add</span>
+                    <p>Instant access to 900+ ready-to-sell assets</p>
+                  </li>
+                  <li className="flex items-start gap-4 text-white">
+                    <span className="material-symbols-outlined text-primary">add</span>
+                    <p>One low membership fee for everything</p>
+                  </li>
+                  <li className="flex items-start gap-4 text-white">
+                    <span className="material-symbols-outlined text-primary">add</span>
+                    <p>Unlimited downloads across all niches</p>
+                  </li>
+                  <li className="flex items-start gap-4 text-white">
+                    <span className="material-symbols-outlined text-primary">add</span>
+                    <p>Pre-written legal MRR certificates included</p>
+                  </li>
+                </ul>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        {/* Release Calendar */}
+        <section className="py-24 px-6 bg-surface/30">
+          <div className="max-w-7xl mx-auto">
+            <div className="flex flex-col md:flex-row items-end justify-between mb-16 gap-6">
+              <div className="space-y-4">
+                <h2 className="text-primary text-sm font-bold uppercase tracking-[0.2em]">Always Fresh</h2>
+                <h3 className="text-4xl font-800 text-white">Upcoming Release Calendar</h3>
+              </div>
+              <p className="text-white/40 max-w-sm">We add 20+ new premium products every single month to keep your store competitive.</p>
+            </div>
+            
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+              {[
+                { month: "MARCH", items: ["Faceless TikTok Mastery", "500+ Luxury Home Reels", "Email Marketing Templates"], active: true },
+                { month: "APRIL", items: ["AI Art Generation Course", "Digital Planner Suite", "Podcast Script Kits"], active: false },
+                { month: "MAY", items: ["Social Media Agency Pack", "SEO Blueprint 2024", "Canva Elements Library"], active: false },
+              ].map((item, i) => (
+                <Reveal key={i} delay={i * 100}>
+                  <div className="glass-card p-8 rounded-2xl border-white/10 group hover:border-primary/40 transition-all">
+                    <div className={`font-black text-4xl mb-6 ${item.active ? 'text-primary' : 'text-white/40'}`}>{item.month}</div>
+                    <ul className="space-y-4 text-white/70">
+                      {item.items.map((listItem, j) => (
+                        <li key={j} className="flex items-center gap-3">
+                          <span className={`size-2 rounded-full ${item.active ? 'bg-primary' : 'bg-white/20'}`}></span>
+                          {listItem}
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                </Reveal>
+              ))}
+            </div>
+          </div>
+        </section>
+
+        {/* Features Section */}
+        <section className="py-24 px-6">
+          <div className="max-w-7xl mx-auto grid grid-cols-1 md:grid-cols-3 gap-12">
+            {[
+              {
+                icon: "gavel",
+                title: "Sell Legally From Day 1",
+                desc: "No copyright headaches. Every asset comes with a certified license that allows you to resell and keep the profit."
+              },
+              {
+                icon: "art_track",
+                title: "Ready-To-Post Sales Materials",
+                desc: "We provide the thumbnails, sales copy, and ad creatives. Just download the assets and you're ready to market."
+              },
+              {
+                icon: "rocket_launch",
+                title: "Instant Business Launch",
+                desc: "Why spend months in development? Select your niche, download our bundles, and go live in under 30 minutes."
+              },
+            ].map((item, i) => (
+              <Reveal key={i} delay={i * 100}>
+                <div className="space-y-6">
+                  <div className="size-14 rounded-2xl bg-primary/10 flex items-center justify-center text-primary">
+                    <span className="material-symbols-outlined text-3xl">{item.icon}</span>
+                  </div>
+                  <h4 className="text-2xl font-bold text-white">{item.title}</h4>
+                  <p className="text-white/50 leading-relaxed">{item.desc}</p>
+                </div>
+              </Reveal>
+            ))}
+          </div>
+        </section>
+
+        {/* Testimonials */}
+        <section className="py-24 px-6 bg-surface/30">
+          <div className="max-w-7xl mx-auto">
+            <div className="text-center mb-16">
+              <Reveal delay={0}>
+                <h2 className="text-primary text-sm font-bold uppercase tracking-[0.2em] mb-4">Success Stories</h2>
+              </Reveal>
+              <Reveal delay={100}>
+                <h3 className="text-4xl font-800 text-white">What Our Resellers Are Earning</h3>
+              </Reveal>
+            </div>
+            
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
               {[
                 {
-                  q: "Do I get PLR/MRR rights?",
-                  a: "Yes — items are provided with usage rights. Rights can vary per item, so always review the included license. We do not provide legal advice."
+                  quote: "Made my first $500 on Etsy within 4 days of joining. The Reels bundles are incredible quality and sell like crazy.",
+                  name: "Sarah Jenkins",
+                  role: "Etsy Seller"
                 },
                 {
-                  q: "Where can I sell these?",
-                  a: "Most members sell on Etsy, Gumroad, Shopify, and other marketplaces. Follow each item's license and platform policies."
+                  quote: "Finally a platform that delivers real value. No more low-quality PLR. This stuff is actually high-end.",
+                  name: "Marcus Thorne",
+                  role: "Digital Entrepreneur"
                 },
                 {
-                  q: "How often do you add new products?",
-                  a: "Monthly. New releases are highlighted in the dashboard under \"New This Month\"."
-                },
-                {
-                  q: "What happens if I cancel?",
-                  a: "If you cancel, your access continues until the end of your current paid period. When your subscription is inactive/expired, downloads are revoked."
-                },
-                {
-                  q: "Is there a download limit?",
-                  a: "Yes — we enforce a fair-use download limit per user/day to discourage dumping and protect the library."
-                },
-                {
-                  q: "Do you guarantee income?",
-                  a: "No. We provide products and training, but results depend on your execution, niche, and market demand."
+                  quote: "The monthly drops keep my inventory fresh. My customers are always coming back for more new products.",
+                  name: "Elena Rodriguez",
+                  role: "Content Creator"
                 },
               ].map((item, i) => (
-                <GlassCard key={i} padding="none" className="overflow-hidden">
-                  <details className="group">
-                    <summary className="flex cursor-pointer items-center justify-between p-5 font-medium text-zinc-900 list-none">
-                      {item.q}
-                      <span className="flex h-5 w-5 items-center justify-center rounded-full bg-zinc-100 text-zinc-500 transition-transform group-open:rotate-180">
-                        <svg className="h-3 w-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                        </svg>
-                      </span>
-                    </summary>
-                    <div className="px-5 pb-5 text-sm text-zinc-600">
-                      {item.a}
+                <Reveal key={i} delay={i * 100}>
+                  <GlassCard className="p-8 rounded-2xl border-white/10">
+                    <div className="flex gap-1 mb-4">
+                      {[1, 2, 3, 4, 5].map((star) => (
+                        <span key={star} className="material-symbols-outlined text-primary text-lg" style={{ fontVariationSettings: "'FILL' 1" }}>star</span>
+                      ))}
                     </div>
-                  </details>
-                </GlassCard>
+                    <p className="text-white/80 italic mb-6">"{item.quote}"</p>
+                    <div className="flex items-center gap-4">
+                      <div className="size-10 rounded-full bg-primary/20 flex items-center justify-center text-primary font-bold">
+                        {item.name.charAt(0)}
+                      </div>
+                      <div>
+                        <div className="text-sm font-bold text-white">{item.name}</div>
+                        <div className="text-[10px] text-primary uppercase font-black">{item.role}</div>
+                      </div>
+                    </div>
+                  </GlassCard>
+                </Reveal>
               ))}
             </div>
           </div>
         </section>
 
         {/* Final CTA */}
-        <section className="border-t border-zinc-100 bg-gradient-to-b from-white to-indigo-50/30 py-16">
-          <div className="mx-auto max-w-3xl px-4">
-            <GlassCard padding="lg" glow className="text-center relative overflow-hidden">
-              {/* Decorative elements */}
-              <div className="absolute -top-20 -left-20 h-40 w-40 rounded-full bg-indigo-200/30 blur-3xl" />
-              <div className="absolute -bottom-20 -right-20 h-40 w-40 rounded-full bg-violet-200/30 blur-3xl" />
-              
-              <div className="relative">
-                <h2 className="text-2xl font-bold tracking-tight text-zinc-900">
-                  Unlock the full library today
-                </h2>
-                <p className="mt-3 max-w-xl text-zinc-600 mx-auto">
-                  One membership. A growing product library. Monthly drops. Training. Community.
-                  {" "}
-                  <span className="font-semibold text-zinc-900">$99.90/year</span> — less than $0.30/day.
-                </p>
-                <div className="mt-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-center">
-                  <EmailCaptureCheckoutCta 
-                    source="final"
-                    buttonClassName="h-12 px-6 text-base font-semibold rounded-xl bg-gradient-to-r from-indigo-500 to-violet-500 text-white shadow-lg shadow-indigo-500/25 transition-all hover:shadow-indigo-500/40 hover:shadow-xl hover:scale-[1.02] active:scale-[0.98]"
-                  />
-                </div>
-                <p className="mt-4 text-xs text-zinc-400">
-                  Urgency-lite: join now so you don't miss the next monthly drop.
-                </p>
+        <section className="py-24 px-6 relative">
+          <div className="max-w-6xl mx-auto bg-primary rounded-[3rem] p-12 lg:p-24 text-center relative overflow-hidden gold-glow">
+            <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,_rgba(255,255,255,0.3),_transparent)] pointer-events-none"></div>
+            <div className="relative z-10 space-y-8">
+              <h3 className="text-background-dark text-5xl lg:text-7xl font-900 tracking-tight leading-[1]">
+                Start Selling Digital <br className="hidden sm:block"/> 
+                Products This Week
+              </h3>
+              <p className="text-background-dark/80 text-xl font-semibold max-w-2xl mx-auto">
+                Stop trading time for money. Build a scalable digital empire with 900+ products ready for you to resell right now.
+              </p>
+              <div className="flex flex-col sm:flex-row gap-4 justify-center pt-4">
+                <EmailCaptureCheckoutCta 
+                  source="final"
+                  buttonLabel="Get Instant Access Now"
+                  buttonClassName="bg-background-dark text-white px-12 py-6 rounded-2xl text-xl font-black transition-all hover:scale-105 shadow-2xl flex items-center justify-center gap-3"
+                />
               </div>
-            </GlassCard>
+              <div className="flex items-center justify-center gap-6 pt-4 text-background-dark/60">
+                <div className="flex items-center gap-2">
+                  <span className="material-symbols-outlined text-sm">lock</span>
+                  <span className="text-xs font-bold uppercase">Secure Payment</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="material-symbols-outlined text-sm">event_repeat</span>
+                  <span className="text-xs font-bold uppercase">Cancel Anytime</span>
+                </div>
+              </div>
+            </div>
           </div>
         </section>
       </main>
 
       {/* Footer */}
-      <footer className="border-t border-zinc-100 bg-white py-8">
-        <div className="mx-auto flex max-w-6xl flex-col gap-3 px-4 sm:flex-row sm:items-center sm:justify-between">
-          <p className="text-xs text-zinc-400">© {new Date().getFullYear()} ProfitMRR Library</p>
-          <div className="flex gap-4 text-xs">
-            <Link href="/privacy" className="text-zinc-500 transition-colors hover:text-zinc-900">
-              Privacy
-            </Link>
-            <Link href="/terms" className="text-zinc-500 transition-colors hover:text-zinc-900">
-              Terms
-            </Link>
+      <footer className="bg-background-dark border-t border-white/5 py-20 px-6">
+        <div className="max-w-7xl mx-auto grid grid-cols-1 md:grid-cols-4 gap-16">
+          <div className="space-y-6">
+            <div className="flex items-center gap-3">
+              <div className="bg-primary p-1 rounded-lg">
+                <span className="material-symbols-outlined text-background-dark text-sm font-bold">account_balance_wallet</span>
+              </div>
+              <h1 className="text-lg font-800 tracking-tight text-white uppercase">Profit<span className="text-primary">MRR</span></h1>
+            </div>
+            <p className="text-white/40 text-sm leading-relaxed">
+              The world's leading infrastructure for digital product resellers. Premium products, legal licensing, and high-conversion systems.
+            </p>
+          </div>
+          
+          <div>
+            <h5 className="text-white font-bold mb-8 uppercase tracking-widest text-xs">Platform</h5>
+            <ul className="space-y-4 text-white/40 text-sm">
+              <li><a className="hover:text-primary transition-colors" href="#">Browse Library</a></li>
+              <li><a className="hover:text-primary transition-colors" href="#">Monthly Drops</a></li>
+              <li><a className="hover:text-primary transition-colors" href="#">License Details</a></li>
+              <li><a className="hover:text-primary transition-colors" href="#">Support Center</a></li>
+            </ul>
+          </div>
+          
+          <div>
+            <h5 className="text-white font-bold mb-8 uppercase tracking-widest text-xs">Company</h5>
+            <ul className="space-y-4 text-white/40 text-sm">
+              <li><a className="hover:text-primary transition-colors" href="#">Affiliate Program</a></li>
+              <li><a className="hover:text-primary transition-colors" href="#">Terms of Service</a></li>
+              <li><a className="hover:text-primary transition-colors" href="#">Privacy Policy</a></li>
+              <li><a className="hover:text-primary transition-colors" href="#">Contact Us</a></li>
+            </ul>
+          </div>
+          
+          <div>
+            <h5 className="text-white font-bold mb-8 uppercase tracking-widest text-xs">Newsletter</h5>
+            <p className="text-white/40 text-sm mb-6">Get notified when we drop new premium products.</p>
+            <div className="flex gap-2">
+              <input 
+                className="bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-sm text-white focus:outline-none focus:border-primary w-full" 
+                placeholder="Your email" 
+                type="email"
+              />
+              <button className="bg-primary px-4 rounded-xl text-background-dark">
+                <span className="material-symbols-outlined">send</span>
+              </button>
+            </div>
+          </div>
+        </div>
+        
+        <div className="max-w-7xl mx-auto border-t border-white/5 mt-20 pt-8 flex flex-col sm:flex-row items-center justify-between gap-6">
+          <p className="text-white/30 text-[10px] uppercase tracking-[0.3em]">© {new Date().getFullYear()} ProfitMRR. All rights reserved.</p>
+          <div className="flex gap-8">
+            <a className="text-white/30 hover:text-white transition-colors" href="#"><span className="material-symbols-outlined text-xl">public</span></a>
+            <a className="text-white/30 hover:text-white transition-colors" href="#"><span className="material-symbols-outlined text-xl">share</span></a>
+            <a className="text-white/30 hover:text-white transition-colors" href="#"><span className="material-symbols-outlined text-xl">alternate_email</span></a>
           </div>
         </div>
       </footer>
