@@ -197,6 +197,34 @@ export default function CreateEbooksPage() {
     return { res, data };
   }
 
+  function formatUnauthorizedDebug(input: {
+    data:
+      | {
+          error?: string;
+          code?: string;
+          debug_ref?: string;
+          has_cookie_header?: boolean;
+          has_supabase_cookie?: boolean;
+          cookie_names?: string[];
+          has_authorization_header?: boolean;
+        }
+      | null;
+  }) {
+    const code = String(input.data?.code ?? "").trim();
+    const debugRef = String(input.data?.debug_ref ?? "").trim();
+
+    const parts = [
+      "Session authentication was not detected. Please log out and log in again.",
+      code ? `Code: ${code}.` : null,
+      debugRef ? `Debug ref: ${debugRef}.` : null,
+      input.data?.has_cookie_header === false ? "No cookies were sent with this request." : null,
+      input.data?.has_supabase_cookie === false ? "Supabase auth cookie is missing." : null,
+      input.data?.has_authorization_header === false ? "Authorization header is missing." : null,
+    ].filter(Boolean);
+
+    return parts.join(" ");
+  }
+
   async function onGenerate(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
     setError(null);
@@ -256,6 +284,26 @@ export default function CreateEbooksPage() {
     if (!res.ok) {
       setLoading(false);
       setJobStatus("failed");
+
+      if (res.status === 401) {
+        const debugMessage = formatUnauthorizedDebug({
+          data: data as
+            | {
+                error?: string;
+                code?: string;
+                debug_ref?: string;
+                has_cookie_header?: boolean;
+                has_supabase_cookie?: boolean;
+                cookie_names?: string[];
+                has_authorization_header?: boolean;
+              }
+            | null,
+        });
+
+        setError(debugMessage || data?.error || "Unauthorized.");
+        return;
+      }
+
       setError(data?.error ?? "Unable to generate eBook right now.");
       return;
     }

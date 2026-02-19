@@ -13,7 +13,7 @@ import {
   normalizePlanTier,
   type EbookQuotaPeriod,
 } from "@/lib/ebooks";
-import { buildEbookUnauthorizedPayload, resolveEbookAuth } from "@/lib/ebooks-auth";
+import { buildEbookUnauthorizedPayload, resolveEbookAuth, summarizeCookieHeader } from "@/lib/ebooks-auth";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 
 function getInternalJobSecret() {
@@ -146,7 +146,30 @@ export async function POST(req: Request) {
   const reqHeaders = await headers();
   const auth = await resolveEbookAuth(req);
   if (!auth) {
-    return NextResponse.json(buildEbookUnauthorizedPayload(req, "ebooks_jobs_auth_missing_user"), { status: 401 });
+    const debugRef = randomUUID();
+    const cookieSummary = summarizeCookieHeader(req.headers.get("cookie"));
+
+    logEbookJobsAuth("unauthorized", {
+      debugRef,
+      hasCookieHeader: cookieSummary.hasCookieHeader,
+      hasSupabaseCookie: cookieSummary.hasSupabaseCookie,
+      cookieNames: cookieSummary.cookieNames,
+      hasAuthorizationHeader: req.headers.has("authorization"),
+      origin: reqHeaders.get("origin"),
+      referer: reqHeaders.get("referer"),
+      host: reqHeaders.get("host"),
+      forwardedHost: reqHeaders.get("x-forwarded-host"),
+      forwardedProto: reqHeaders.get("x-forwarded-proto"),
+      userAgent: reqHeaders.get("user-agent"),
+    });
+
+    return NextResponse.json(
+      {
+        ...buildEbookUnauthorizedPayload(req, "ebooks_jobs_auth_missing_user"),
+        debug_ref: debugRef,
+      },
+      { status: 401 },
+    );
   }
 
   logEbookJobsAuth("authorized", {
