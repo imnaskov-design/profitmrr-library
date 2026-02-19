@@ -12,8 +12,9 @@ function normalizeCookieOptionsForRemember(
 ): Partial<ResponseCookie> | undefined {
   const nextOptions: Partial<ResponseCookie> = {
     ...(options ?? {}),
-    // Ensure auth cookies are scoped to the full site, including /api endpoints.
-    path: options?.path ?? "/",
+    // Always keep auth cookies root-scoped so both app pages and API routes
+    // receive the same auth context.
+    path: "/",
   };
 
   if (remember) return nextOptions;

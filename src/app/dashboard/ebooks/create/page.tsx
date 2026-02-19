@@ -224,6 +224,13 @@ export default function CreateEbooksPage() {
 
     const authContext = await resolveAccessTokenForGenerate();
 
+    if (!authContext.accessToken) {
+      setLoading(false);
+      setJobStatus("failed");
+      setError("Session expired. Please log out and log in again.");
+      return;
+    }
+
     let { res, data } = await postCreateJob({
       payload,
       accessToken: authContext.accessToken,

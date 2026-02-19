@@ -9,6 +9,14 @@ import { cookies } from "next/headers";
 import type { ResponseCookie } from "next/dist/compiled/@edge-runtime/cookies";
 
 const REMEMBER_COOKIE = "pmrr_remember";
+const LEGACY_SUPABASE_COOKIE_PATHS = [
+  "/api",
+  "/api/auth",
+  "/api/auth/login",
+  "/dashboard",
+  "/dashboard/ebooks",
+  "/dashboard/ebooks/create",
+] as const;
 
 const schema = z.object({
   identifier: z.string().min(1).max(254),
@@ -27,9 +35,9 @@ function normalizeCookieOptionsForRemember(
 ): Partial<ResponseCookie> | undefined {
   const nextOptions: Partial<ResponseCookie> = {
     ...(options ?? {}),
-    // Ensure auth cookies are available for both dashboard pages and /api routes.
-    // Without an explicit path, some runtimes can default to request-path scoping.
-    path: options?.path ?? "/",
+    // Always force root scope so auth cookies are sent to both dashboard pages
+    // and all API routes.
+    path: "/",
   };
 
   if (remember) return nextOptions;
@@ -43,6 +51,33 @@ function normalizeCookieOptionsForRemember(
   delete nextOptions.expires;
   delete nextOptions.maxAge;
   return nextOptions;
+}
+
+function clearLegacySupabaseCookiePaths(cookieStore: Awaited<ReturnType<typeof cookies>>) {
+  const sbCookieNames = Array.from(
+    new Set(
+      cookieStore
+        .getAll()
+        .map(({ name }) => name)
+        .filter((name) => name.startsWith("sb-")),
+    ),
+  );
+
+  if (!sbCookieNames.length) return;
+
+  const secure = process.env.NODE_ENV === "production";
+
+  sbCookieNames.forEach((name) => {
+    LEGACY_SUPABASE_COOKIE_PATHS.forEach((path) => {
+      cookieStore.set(name, "", {
+        path,
+        expires: new Date(0),
+        maxAge: 0,
+        sameSite: "lax",
+        secure,
+      });
+    });
+  });
 }
 
 export async function POST(req: Request) {
@@ -60,6 +95,11 @@ export async function POST(req: Request) {
   // to the auth cookies on this login.
   const env = getPublicEnv();
   const cookieStore = await cookies();
+
+  // Clean up legacy path-scoped Supabase cookies that can shadow the root-scoped
+  // auth cookie and cause API requests to miss authentication context.
+  clearLegacySupabaseCookiePaths(cookieStore);
+
   const supabase = createServerClient(env.NEXT_PUBLIC_SUPABASE_URL, env.NEXT_PUBLIC_SUPABASE_ANON_KEY, {
     cookies: {
       getAll() {
