@@ -1,6 +1,7 @@
 import { headers } from "next/headers";
 import { NextResponse } from "next/server";
 import { randomUUID } from "node:crypto";
+import { createClient } from "@supabase/supabase-js";
 
 import {
   coerceEbookJobRow,
@@ -13,6 +14,7 @@ import {
   normalizePlanTier,
   type EbookQuotaPeriod,
 } from "@/lib/ebooks";
+import { getPublicEnv } from "@/lib/env/public";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 
@@ -53,7 +55,6 @@ function quotaError(input: {
 
 async function getCurrentUserId() {
   const supabase = await createSupabaseServerClient();
-  const admin = createSupabaseAdminClient();
   const reqHeaders = await headers();
 
   const {
@@ -61,7 +62,7 @@ async function getCurrentUserId() {
   } = await supabase.auth.getUser();
 
   let resolvedUser = cookieUser;
-  let useAdminDb = false;
+  let dbClient: Awaited<ReturnType<typeof createSupabaseServerClient>> | ReturnType<typeof createClient> = supabase;
 
   if (!resolvedUser?.id) {
     const authHeader = reqHeaders.get("authorization") ?? "";
@@ -69,10 +70,23 @@ async function getCurrentUserId() {
     const accessToken = bearerMatch?.[1]?.trim();
 
     if (accessToken) {
-      const { data, error } = await admin.auth.getUser(accessToken);
+      const { data, error } = await supabase.auth.getUser(accessToken);
       if (!error && data.user?.id) {
         resolvedUser = data.user;
-        useAdminDb = true;
+
+        const env = getPublicEnv();
+        dbClient = createClient(env.NEXT_PUBLIC_SUPABASE_URL, env.NEXT_PUBLIC_SUPABASE_ANON_KEY, {
+          global: {
+            headers: {
+              authorization: `Bearer ${accessToken}`,
+            },
+          },
+          auth: {
+            persistSession: false,
+            autoRefreshToken: false,
+            detectSessionInUrl: false,
+          },
+        });
       }
     }
   }
@@ -84,11 +98,18 @@ async function getCurrentUserId() {
   const planTier = normalizePlanTier(userMeta.plan_tier ?? appMeta.plan_tier);
 
   return {
-    db: useAdminDb ? admin : supabase,
-    admin,
+    db: dbClient,
     userId: resolvedUser.id,
     planTier,
   };
+}
+
+function tryCreateSupabaseAdminClient() {
+  try {
+    return createSupabaseAdminClient();
+  } catch {
+    return null;
+  }
 }
 
 async function enforceGenerationQuota(input: {
@@ -188,7 +209,8 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "Invalid idempotency key." }, { status: 400 });
   }
 
-  const { db, admin, userId, planTier } = auth;
+  const { db, userId, planTier } = auth;
+  const admin = tryCreateSupabaseAdminClient();
 
   const { data: existing } = await db
     .from("ebook_jobs")
@@ -208,8 +230,10 @@ export async function POST(req: Request) {
     });
   }
 
-  const quotaErr = await enforceGenerationQuota({ supabase: admin, userId, planTier });
-  if (quotaErr) return quotaErr;
+  if (admin) {
+    const quotaErr = await enforceGenerationQuota({ supabase: admin, userId, planTier });
+    if (quotaErr) return quotaErr;
+  }
 
   const ebookId = randomUUID();
   const jobId = randomUUID();
@@ -283,11 +307,13 @@ export async function POST(req: Request) {
     });
   }
 
-  await incrementGenerationUsage({
-    supabase: admin,
-    userId,
-    planTier,
-  });
+  if (admin) {
+    await incrementGenerationUsage({
+      supabase: admin,
+      userId,
+      planTier,
+    });
+  }
 
   const host = reqHeaders.get("x-forwarded-host") ?? reqHeaders.get("host");
   const proto = reqHeaders.get("x-forwarded-proto") ?? "http";
