@@ -57,19 +57,53 @@ function logEbookJobsAuth(event: string, meta: Record<string, unknown>) {
   console.info("[ebooks.jobs.auth]", event, meta);
 }
 
+function summarizeCookieHeader(rawCookieHeader: string | null) {
+  if (!rawCookieHeader) {
+    return {
+      hasCookieHeader: false,
+      cookieNames: [] as string[],
+      hasSupabaseCookie: false,
+    };
+  }
+
+  const cookieNames = rawCookieHeader
+    .split(";")
+    .map((part) => part.trim().split("=")[0]?.trim())
+    .filter((name): name is string => !!name)
+    .slice(0, 20);
+
+  const hasSupabaseCookie = cookieNames.some((name) => name.startsWith("sb-") || name.includes("supabase"));
+
+  return {
+    hasCookieHeader: true,
+    cookieNames,
+    hasSupabaseCookie,
+  };
+}
+
 async function getCurrentUserId(req: Request) {
   const supabase = await createSupabaseServerClient();
-  const hasCookieHeader = req.headers.has("cookie");
+  const cookieSummary = summarizeCookieHeader(req.headers.get("cookie"));
+  const hasCookieHeader = cookieSummary.hasCookieHeader;
   const hasAuthorizationHeader = req.headers.has("authorization");
 
   logEbookJobsAuth("start", {
     hasCookieHeader,
     hasAuthorizationHeader,
+    hasSupabaseCookie: cookieSummary.hasSupabaseCookie,
+    cookieNames: cookieSummary.cookieNames,
   });
 
   const {
     data: { user: cookieUser },
+    error: cookieUserError,
   } = await supabase.auth.getUser();
+
+  if (cookieUserError) {
+    logEbookJobsAuth("cookie_user_error", {
+      message: cookieUserError.message,
+    });
+  }
 
   logEbookJobsAuth("cookie_user_checked", {
     hasCookieUser: !!cookieUser?.id,
@@ -116,6 +150,8 @@ async function getCurrentUserId(req: Request) {
     logEbookJobsAuth("unauthorized", {
       hasCookieHeader,
       hasAuthorizationHeader,
+      hasSupabaseCookie: cookieSummary.hasSupabaseCookie,
+      cookieNames: cookieSummary.cookieNames,
     });
     return null;
   }
@@ -224,13 +260,16 @@ async function incrementGenerationUsage(input: {
 
 export async function POST(req: Request) {
   const reqHeaders = await headers();
+  const cookieSummary = summarizeCookieHeader(req.headers.get("cookie"));
   const auth = await getCurrentUserId(req);
   if (!auth) {
     return NextResponse.json(
       {
         error: "Unauthorized.",
         code: "ebooks_jobs_auth_missing_user",
-        has_cookie_header: req.headers.has("cookie"),
+        has_cookie_header: cookieSummary.hasCookieHeader,
+        has_supabase_cookie: cookieSummary.hasSupabaseCookie,
+        cookie_names: cookieSummary.cookieNames,
         has_authorization_header: req.headers.has("authorization"),
       },
       { status: 401 },
