@@ -30,6 +30,10 @@ export default function LoginClient({ nextPath }: { nextPath: string }) {
       | {
           error?: string;
           resolved_email?: string;
+          session?: {
+            access_token?: string;
+            refresh_token?: string;
+          };
         }
       | null;
 
@@ -40,21 +44,31 @@ export default function LoginClient({ nextPath }: { nextPath: string }) {
     }
 
     // Ensure the browser client exists so subsequent navigation has a hydrated client.
-    // (Session is stored in cookies via SSR helpers.)
     const supabase = await createSupabaseBrowserClient();
 
-    // Force browser-side Supabase session persistence too.
-    // Some edge deployments can otherwise keep only app cookies (pmrr_remember)
-    // without the sb-* auth cookies needed by server auth resolution.
-    const emailForBrowserSignIn = data?.resolved_email ?? identifier.trim();
+    // Deterministically hydrate browser auth state from server login.
+    // This prevents edge cases where only app cookies exist (pmrr_remember)
+    // but no browser Supabase session is available for authenticated API calls.
+    const sessionFromServer = data?.session;
 
-    try {
-      await supabase.auth.signInWithPassword({
-        email: emailForBrowserSignIn,
-        password,
+    if (sessionFromServer?.access_token && sessionFromServer?.refresh_token) {
+      await supabase.auth.setSession({
+        access_token: sessionFromServer.access_token,
+        refresh_token: sessionFromServer.refresh_token,
       });
-    } catch {
-      // Ignore client hydration sign-in errors; server login already succeeded.
+    } else {
+      // Backward-compatible fallback if an older server response does not include
+      // session tokens.
+      const emailForBrowserSignIn = data?.resolved_email ?? identifier.trim();
+
+      try {
+        await supabase.auth.signInWithPassword({
+          email: emailForBrowserSignIn,
+          password,
+        });
+      } catch {
+        // Ignore client hydration sign-in errors; server login already succeeded.
+      }
     }
 
     setLoading(false);

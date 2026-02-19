@@ -93,12 +93,17 @@ export async function POST(req: Request) {
     }
   }
 
-  const { error } = await supabase.auth.signInWithPassword({
+  const { data: signInData, error } = await supabase.auth.signInWithPassword({
     email,
     password,
   });
 
   if (error) {
+    return NextResponse.json({ error: "Invalid credentials." }, { status: 401 });
+  }
+
+  const session = signInData.session;
+  if (!session) {
     return NextResponse.json({ error: "Invalid credentials." }, { status: 401 });
   }
 
@@ -116,5 +121,16 @@ export async function POST(req: Request) {
       : null),
   });
 
-  return NextResponse.json({ ok: true, remember, resolved_email: email });
+  return NextResponse.json({
+    ok: true,
+    remember,
+    resolved_email: email,
+    session: {
+      access_token: session.access_token,
+      refresh_token: session.refresh_token,
+      expires_at: session.expires_at,
+      expires_in: session.expires_in,
+      token_type: session.token_type,
+    },
+  });
 }
