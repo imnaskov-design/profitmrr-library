@@ -139,7 +139,11 @@ export default function EbookDetailsPage({ params }: { params: RouteParams }) {
   }, [ebookId]);
 
   useEffect(() => {
-    void load();
+    const timer = setTimeout(() => {
+      void load();
+    }, 0);
+
+    return () => clearTimeout(timer);
   }, [load]);
 
   useEffect(() => {
@@ -155,6 +159,16 @@ export default function EbookDetailsPage({ params }: { params: RouteParams }) {
   const readyExports = useMemo(() => {
     return (payload?.exports ?? []).filter((row) => row.status === "ready");
   }, [payload?.exports]);
+
+  const latestReadyByFormat = useMemo(() => {
+    const map: Partial<Record<"pdf" | "docx" | "epub", string>> = {};
+    for (const row of readyExports) {
+      if (!map[row.format]) {
+        map[row.format] = row.id;
+      }
+    }
+    return map;
+  }, [readyExports]);
 
   const isGenerating = payload?.ebook?.status === "generating";
   const title = payload?.ebook?.title?.trim() || titleFromId(ebookId) || "E-Book Details";
@@ -315,7 +329,13 @@ export default function EbookDetailsPage({ params }: { params: RouteParams }) {
                 {queueingFormat === "docx" ? "Queueing..." : "Queue DOCX"}
               </button>
               <button
-                disabled={!readyExports.some((r) => r.format === "docx")}
+                type="button"
+                onClick={() => {
+                  const id = latestReadyByFormat.docx;
+                  if (!id) return;
+                  window.open(`/api/ebooks/exports/${id}/download`, "_blank", "noopener,noreferrer");
+                }}
+                disabled={!latestReadyByFormat.docx}
                 className="flex items-center justify-center gap-2 rounded-xl bg-white/5 py-3 text-xs font-bold text-white/80 transition-all hover:bg-white/10 disabled:cursor-not-allowed disabled:opacity-50"
               >
                 <span className="material-symbols-outlined text-sm text-primary">description</span>
@@ -332,7 +352,13 @@ export default function EbookDetailsPage({ params }: { params: RouteParams }) {
                 {queueingFormat === "pdf" ? "Queueing..." : "Queue PDF"}
               </button>
               <button
-                disabled={!readyExports.some((r) => r.format === "pdf")}
+                type="button"
+                onClick={() => {
+                  const id = latestReadyByFormat.pdf;
+                  if (!id) return;
+                  window.open(`/api/ebooks/exports/${id}/download`, "_blank", "noopener,noreferrer");
+                }}
+                disabled={!latestReadyByFormat.pdf}
                 className="flex items-center justify-center gap-2 rounded-xl bg-white/5 py-3 text-xs font-bold text-white/80 transition-all hover:bg-white/10 disabled:cursor-not-allowed disabled:opacity-50"
               >
                 <span className="material-symbols-outlined text-sm text-primary">picture_as_pdf</span>

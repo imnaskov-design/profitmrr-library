@@ -7,10 +7,9 @@ import {
   getEbookQuotaExceededCode,
   getEbookQuotaLimit,
   getNextPeriodStart,
-  normalizePlanTier,
 } from "@/lib/ebooks";
+import { buildEbookUnauthorizedPayload, resolveEbookAuth } from "@/lib/ebooks-auth";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
-import { createSupabaseServerClient } from "@/lib/supabase/server";
 
 const schema = z.object({
   action: z.enum(["rewrite", "expand", "shorten", "tone_switch"]),
@@ -73,7 +72,7 @@ function quotaError(input: {
 async function enforceAiEditQuota(input: {
   admin: ReturnType<typeof createSupabaseAdminClient>;
   userId: string;
-  planTier: ReturnType<typeof normalizePlanTier>;
+  planTier: "starter" | "growth" | "scale";
 }) {
   const now = new Date();
 
@@ -111,7 +110,7 @@ async function enforceAiEditQuota(input: {
 async function incrementAiEditUsage(input: {
   admin: ReturnType<typeof createSupabaseAdminClient>;
   userId: string;
-  planTier: ReturnType<typeof normalizePlanTier>;
+  planTier: "starter" | "growth" | "scale";
 }) {
   const now = new Date();
 
@@ -163,32 +162,26 @@ export async function POST(
     return NextResponse.json({ error: "Invalid request." }, { status: 400 });
   }
 
-  const supabase = await createSupabaseServerClient();
-  const admin = createSupabaseAdminClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-
-  if (!user?.id) {
-    return NextResponse.json({ error: "Unauthorized." }, { status: 401 });
+  const auth = await resolveEbookAuth(req);
+  if (!auth) {
+    return NextResponse.json(buildEbookUnauthorizedPayload(req, "ebooks_ai_action_auth_missing_user"), { status: 401 });
   }
 
-  const userMeta = (user.user_metadata ?? {}) as Record<string, unknown>;
-  const appMeta = (user.app_metadata ?? {}) as Record<string, unknown>;
-  const planTier = normalizePlanTier(userMeta.plan_tier ?? appMeta.plan_tier);
+  const { db, userId, planTier } = auth;
+  const admin = createSupabaseAdminClient();
 
   const quotaErr = await enforceAiEditQuota({
     admin,
-    userId: user.id,
+    userId,
     planTier,
   });
   if (quotaErr) return quotaErr;
 
-  const { data: ebook } = await supabase
+  const { data: ebook } = await db
     .from("ebooks")
     .select("id, user_id, active_version_id, updated_at")
     .eq("id", id)
-    .eq("user_id", user.id)
+    .eq("user_id", userId)
     .maybeSingle();
 
   if (!ebook?.active_version_id) {
@@ -211,7 +204,7 @@ export async function POST(
     );
   }
 
-  const { data: section } = await supabase
+  const { data: section } = await db
     .from("ebook_sections")
     .select("id, heading, body_richtext")
     .eq("id", sectionId)
@@ -242,7 +235,7 @@ export async function POST(
     ],
   };
 
-  const { data: updated } = await supabase
+  const { data: updated } = await db
     .from("ebook_sections")
     .update({
       body_richtext: revisedRichtext,
@@ -258,7 +251,7 @@ export async function POST(
     ebook_id: id,
     ebook_version_id: ebook.active_version_id,
     section_id: sectionId,
-    user_id: user.id,
+    user_id: userId,
     action_type: parsed.data.action,
     before_text: sourceText,
     after_text: revisedText,
@@ -270,13 +263,13 @@ export async function POST(
   });
 
   const nextUpdatedAt = new Date().toISOString();
-  await supabase
+  await db
     .from("ebooks")
     .update({
       updated_at: nextUpdatedAt,
     })
     .eq("id", id)
-    .eq("user_id", user.id);
+    .eq("user_id", userId);
 
   const nextVersionEtag = buildVersionEtag({
     versionId: ebook.active_version_id,
@@ -285,7 +278,7 @@ export async function POST(
 
   await incrementAiEditUsage({
     admin,
-    userId: user.id,
+    userId,
     planTier,
   });
 

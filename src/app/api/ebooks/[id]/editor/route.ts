@@ -1,14 +1,14 @@
 import { NextResponse } from "next/server";
 
 import { buildVersionEtag } from "@/lib/ebooks";
-import { createSupabaseServerClient } from "@/lib/supabase/server";
+import { buildEbookUnauthorizedPayload, resolveEbookAuth } from "@/lib/ebooks-auth";
 
 type Params = {
   id: string;
 };
 
 export async function GET(
-  _req: Request,
+  req: Request,
   context: {
     params: Promise<Params>;
   },
@@ -18,20 +18,18 @@ export async function GET(
     return NextResponse.json({ error: "Invalid eBook id." }, { status: 400 });
   }
 
-  const supabase = await createSupabaseServerClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-
-  if (!user?.id) {
-    return NextResponse.json({ error: "Unauthorized." }, { status: 401 });
+  const auth = await resolveEbookAuth(req);
+  if (!auth) {
+    return NextResponse.json(buildEbookUnauthorizedPayload(req, "ebooks_editor_auth_missing_user"), { status: 401 });
   }
 
-  const { data: ebook, error: ebookErr } = await supabase
+  const { db, userId } = auth;
+
+  const { data: ebook, error: ebookErr } = await db
     .from("ebooks")
     .select("id, user_id, title, niche, category, tone, language, status, target_page_count, uniqueness_mode, active_version_id, created_at, updated_at")
     .eq("id", id)
-    .eq("user_id", user.id)
+    .eq("user_id", userId)
     .maybeSingle();
 
   if (ebookErr || !ebook) {
@@ -49,13 +47,13 @@ export async function GET(
   }
 
   const [{ data: version }, { data: sections }] = await Promise.all([
-    supabase
+    db
       .from("ebook_versions")
       .select("id, ebook_id, version_number, source, content_json, outline_json, quality_score, quality_report_json, created_at")
       .eq("id", activeVersionId)
       .eq("ebook_id", id)
       .maybeSingle(),
-    supabase
+    db
       .from("ebook_sections")
       .select("id, chapter_index, section_index, section_key, heading, body_richtext, word_count, est_page_span, updated_at")
       .eq("ebook_version_id", activeVersionId)

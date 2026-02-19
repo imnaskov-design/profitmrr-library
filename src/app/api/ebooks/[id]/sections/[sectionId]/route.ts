@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 
 import { buildVersionEtag } from "@/lib/ebooks";
-import { createSupabaseServerClient } from "@/lib/supabase/server";
+import { buildEbookUnauthorizedPayload, resolveEbookAuth } from "@/lib/ebooks-auth";
 
 const schema = z.object({
   heading: z.string().trim().max(300).optional(),
@@ -32,20 +32,18 @@ export async function PATCH(
     return NextResponse.json({ error: "Invalid request." }, { status: 400 });
   }
 
-  const supabase = await createSupabaseServerClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-
-  if (!user?.id) {
-    return NextResponse.json({ error: "Unauthorized." }, { status: 401 });
+  const auth = await resolveEbookAuth(req);
+  if (!auth) {
+    return NextResponse.json(buildEbookUnauthorizedPayload(req, "ebooks_section_patch_auth_missing_user"), { status: 401 });
   }
 
-  const { data: ebook } = await supabase
+  const { db, userId } = auth;
+
+  const { data: ebook } = await db
     .from("ebooks")
     .select("id, user_id, active_version_id, updated_at")
     .eq("id", id)
-    .eq("user_id", user.id)
+    .eq("user_id", userId)
     .maybeSingle();
 
   if (!ebook?.active_version_id) {
@@ -58,7 +56,7 @@ export async function PATCH(
   });
 
   if (parsed.data.version_etag !== expectedEtag) {
-    const { data: latestSection } = await supabase
+    const { data: latestSection } = await db
       .from("ebook_sections")
       .select("id, chapter_index, section_index, section_key, heading, body_richtext, word_count, est_page_span, updated_at")
       .eq("id", sectionId)
@@ -82,7 +80,7 @@ export async function PATCH(
     .split(/\s+/)
     .filter(Boolean).length;
 
-  const { data: updated, error } = await supabase
+  const { data: updated, error } = await db
     .from("ebook_sections")
     .update({
       heading: parsed.data.heading,
@@ -100,13 +98,13 @@ export async function PATCH(
   }
 
   const nextUpdatedAt = new Date().toISOString();
-  await supabase
+  await db
     .from("ebooks")
     .update({
       updated_at: nextUpdatedAt,
     })
     .eq("id", id)
-    .eq("user_id", user.id);
+    .eq("user_id", userId);
 
   const nextVersionEtag = buildVersionEtag({
     versionId: ebook.active_version_id,

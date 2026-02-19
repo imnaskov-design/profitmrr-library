@@ -1,14 +1,14 @@
 import { NextResponse } from "next/server";
 
 import { coerceEbookJobRow } from "@/lib/ebooks";
-import { createSupabaseServerClient } from "@/lib/supabase/server";
+import { buildEbookUnauthorizedPayload, resolveEbookAuth } from "@/lib/ebooks-auth";
 
 type Params = {
   jobId: string;
 };
 
 export async function GET(
-  _req: Request,
+  req: Request,
   context: {
     params: Promise<Params>;
   },
@@ -18,20 +18,18 @@ export async function GET(
     return NextResponse.json({ error: "Invalid job id." }, { status: 400 });
   }
 
-  const supabase = await createSupabaseServerClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-
-  if (!user?.id) {
-    return NextResponse.json({ error: "Unauthorized." }, { status: 401 });
+  const auth = await resolveEbookAuth(req);
+  if (!auth) {
+    return NextResponse.json(buildEbookUnauthorizedPayload(req, "ebooks_job_auth_missing_user"), { status: 401 });
   }
 
-  const { data: row, error } = await supabase
+  const { db, userId } = auth;
+
+  const { data: row, error } = await db
     .from("ebook_jobs")
     .select("id, ebook_id, user_id, idempotency_key, job_type, status, step, progress_pct, error_code, error_message, created_at, finished_at")
     .eq("id", jobId)
-    .eq("user_id", user.id)
+    .eq("user_id", userId)
     .maybeSingle();
 
   if (error || !row) {

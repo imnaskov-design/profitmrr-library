@@ -11,11 +11,10 @@ import {
   getEbookQuotaLimit,
   getNextPeriodStart,
   normalizePlanTier,
-  type EbookExportFormat,
   type EbookQuotaPeriod,
 } from "@/lib/ebooks";
+import { buildEbookUnauthorizedPayload, resolveEbookAuth } from "@/lib/ebooks-auth";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
-import { createSupabaseServerClient } from "@/lib/supabase/server";
 
 const schema = z.object({
   formats: z.array(z.enum(EBOOK_EXPORT_FORMAT_VALUES)).min(1).max(3),
@@ -27,14 +26,6 @@ const schema = z.object({
 type Params = {
   id: string;
 };
-
-function fakeExportPath(input: {
-  ebookId: string;
-  format: EbookExportFormat;
-  profile: "us_letter" | "a4";
-}) {
-  return `exports/ebooks/${input.ebookId}/${input.profile}/ebook.${input.format}`;
-}
 
 function getInternalJobSecret() {
   const configured = process.env.EBOOK_INTERNAL_JOB_SECRET?.trim();
@@ -149,7 +140,7 @@ async function incrementExportUsage(input: {
 }
 
 export async function GET(
-  _req: Request,
+  req: Request,
   context: {
     params: Promise<Params>;
   },
@@ -159,20 +150,18 @@ export async function GET(
     return NextResponse.json({ error: "Invalid eBook id." }, { status: 400 });
   }
 
-  const supabase = await createSupabaseServerClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-
-  if (!user?.id) {
-    return NextResponse.json({ error: "Unauthorized." }, { status: 401 });
+  const auth = await resolveEbookAuth(req);
+  if (!auth) {
+    return NextResponse.json(buildEbookUnauthorizedPayload(req, "ebooks_exports_auth_missing_user"), { status: 401 });
   }
 
-  const { data: rows, error } = await supabase
+  const { db, userId } = auth;
+
+  const { data: rows, error } = await db
     .from("ebook_exports")
     .select("id, format, profile, status, style_preset, file_path, file_size_bytes, page_count, checksum_sha256, created_at, ready_at")
     .eq("ebook_id", id)
-    .eq("user_id", user.id)
+    .eq("user_id", userId)
     .order("created_at", { ascending: false });
 
   if (error) {
@@ -199,19 +188,13 @@ export async function POST(
     return NextResponse.json({ error: "Invalid request." }, { status: 400 });
   }
 
-  const supabase = await createSupabaseServerClient();
-  const admin = createSupabaseAdminClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-
-  if (!user?.id) {
-    return NextResponse.json({ error: "Unauthorized." }, { status: 401 });
+  const auth = await resolveEbookAuth(req);
+  if (!auth) {
+    return NextResponse.json(buildEbookUnauthorizedPayload(req, "ebooks_exports_auth_missing_user"), { status: 401 });
   }
 
-  const userMeta = (user.user_metadata ?? {}) as Record<string, unknown>;
-  const appMeta = (user.app_metadata ?? {}) as Record<string, unknown>;
-  const planTier = normalizePlanTier(userMeta.plan_tier ?? appMeta.plan_tier);
+  const { db, userId, planTier } = auth;
+  const admin = createSupabaseAdminClient();
 
   const normalizedFormats = [...new Set(parsed.data.formats)];
   const requestedCount = normalizedFormats.length;
@@ -221,17 +204,17 @@ export async function POST(
 
   const quotaErr = await enforceExportQuota({
     admin,
-    userId: user.id,
+    userId,
     planTier,
     requestedCount,
   });
   if (quotaErr) return quotaErr;
 
-  const { data: ebook } = await supabase
+  const { data: ebook } = await db
     .from("ebooks")
     .select("id, user_id, status, active_version_id")
     .eq("id", id)
-    .eq("user_id", user.id)
+    .eq("user_id", userId)
     .maybeSingle();
 
   if (!ebook?.active_version_id) {
@@ -249,10 +232,10 @@ export async function POST(
 
   const idempotencyKey = requestedKey ?? `export_${randomUUID()}`;
 
-  const { data: existingJob } = await supabase
+  const { data: existingJob } = await db
     .from("ebook_jobs")
     .select("id, status, output_json")
-    .eq("user_id", user.id)
+    .eq("user_id", userId)
     .eq("ebook_id", id)
     .eq("job_type", "export")
     .eq("idempotency_key", idempotencyKey)
@@ -277,7 +260,7 @@ export async function POST(
       id: randomUUID(),
       ebook_id: id,
       ebook_version_id: ebook.active_version_id,
-      user_id: user.id,
+      user_id: userId,
       format: fmt,
       profile: parsed.data.profile,
       style_preset: parsed.data.style_preset ?? "professional",
@@ -290,7 +273,7 @@ export async function POST(
       ready_at: null,
     };
 
-    const { data: upserted, error } = await supabase
+    const { data: upserted, error } = await db
       .from("ebook_exports")
       .upsert(payload, { onConflict: "ebook_id,ebook_version_id,format,profile" })
       .select("id")
@@ -303,10 +286,10 @@ export async function POST(
     createdExportIds.push(upserted.id);
   }
 
-  const { error: jobErr } = await supabase.from("ebook_jobs").insert({
+  const { error: jobErr } = await db.from("ebook_jobs").insert({
     id: jobId,
     ebook_id: id,
-    user_id: user.id,
+    user_id: userId,
     idempotency_key: idempotencyKey,
     job_type: "export",
     status: "queued",
@@ -331,7 +314,7 @@ export async function POST(
 
   await incrementExportUsage({
     admin,
-    userId: user.id,
+    userId,
     planTier,
     incrementBy: requestedCount,
   });

@@ -224,13 +224,6 @@ export default function CreateEbooksPage() {
 
     const authContext = await resolveAccessTokenForGenerate();
 
-    if (!authContext.accessToken) {
-      setLoading(false);
-      setJobStatus("failed");
-      setError("Session expired. Please log out and log in again.");
-      return;
-    }
-
     let { res, data } = await postCreateJob({
       payload,
       accessToken: authContext.accessToken,
@@ -242,13 +235,21 @@ export default function CreateEbooksPage() {
       const { data: refreshed } = await authContext.supabase.auth.refreshSession();
       const retryToken = refreshed.session?.access_token ?? null;
 
-      if (retryToken) {
-        const retried = await postCreateJob({
+      const retried = await postCreateJob({
+        payload,
+        accessToken: retryToken,
+      });
+      res = retried.res;
+      data = retried.data;
+
+      // Final fallback: submit without bearer token and rely on cookie-backed auth.
+      if (res.status === 401) {
+        const cookieFallback = await postCreateJob({
           payload,
-          accessToken: retryToken,
+          accessToken: null,
         });
-        res = retried.res;
-        data = retried.data;
+        res = cookieFallback.res;
+        data = cookieFallback.data;
       }
     }
 

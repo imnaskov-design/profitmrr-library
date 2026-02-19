@@ -1,7 +1,6 @@
 import { headers } from "next/headers";
 import { NextResponse } from "next/server";
 import { randomUUID } from "node:crypto";
-import { createClient } from "@supabase/supabase-js";
 
 import {
   coerceEbookJobRow,
@@ -14,9 +13,8 @@ import {
   normalizePlanTier,
   type EbookQuotaPeriod,
 } from "@/lib/ebooks";
-import { getPublicEnv } from "@/lib/env/public";
+import { buildEbookUnauthorizedPayload, resolveEbookAuth } from "@/lib/ebooks-auth";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
-import { createSupabaseServerClient } from "@/lib/supabase/server";
 
 function getInternalJobSecret() {
   const configured = process.env.EBOOK_INTERNAL_JOB_SECRET?.trim();
@@ -57,212 +55,6 @@ function logEbookJobsAuth(event: string, meta: Record<string, unknown>) {
   console.info("[ebooks.jobs.auth]", event, meta);
 }
 
-function summarizeCookieHeader(rawCookieHeader: string | null) {
-  if (!rawCookieHeader) {
-    return {
-      hasCookieHeader: false,
-      cookieNames: [] as string[],
-      hasSupabaseCookie: false,
-    };
-  }
-
-  const cookieNames = rawCookieHeader
-    .split(";")
-    .map((part) => part.trim().split("=")[0]?.trim())
-    .filter((name): name is string => !!name)
-    .slice(0, 20);
-
-  const hasSupabaseCookie = cookieNames.some((name) => name.startsWith("sb-") || name.includes("supabase"));
-
-  return {
-    hasCookieHeader: true,
-    cookieNames,
-    hasSupabaseCookie,
-  };
-}
-
-function createRlsClientWithAccessToken(accessToken: string) {
-  const env = getPublicEnv();
-
-  return createClient(env.NEXT_PUBLIC_SUPABASE_URL, env.NEXT_PUBLIC_SUPABASE_ANON_KEY, {
-    global: {
-      headers: {
-        authorization: `Bearer ${accessToken}`,
-      },
-    },
-    auth: {
-      persistSession: false,
-      autoRefreshToken: false,
-      detectSessionInUrl: false,
-    },
-  });
-}
-
-function decodeJwtUserId(accessToken: string) {
-  try {
-    const payloadPart = accessToken.split(".")[1];
-    if (!payloadPart) return null;
-
-    const payload = JSON.parse(Buffer.from(payloadPart, "base64url").toString("utf8")) as {
-      sub?: unknown;
-    };
-
-    return typeof payload.sub === "string" && payload.sub ? payload.sub : null;
-  } catch {
-    return null;
-  }
-}
-
-async function getCurrentUserId(req: Request) {
-  const supabase = await createSupabaseServerClient();
-  const cookieSummary = summarizeCookieHeader(req.headers.get("cookie"));
-  const hasCookieHeader = cookieSummary.hasCookieHeader;
-  const hasAuthorizationHeader = req.headers.has("authorization");
-
-  logEbookJobsAuth("start", {
-    hasCookieHeader,
-    hasAuthorizationHeader,
-    hasSupabaseCookie: cookieSummary.hasSupabaseCookie,
-    cookieNames: cookieSummary.cookieNames,
-  });
-
-  const {
-    data: { user: cookieUser },
-    error: cookieUserError,
-  } = await supabase.auth.getUser();
-
-  if (cookieUserError) {
-    logEbookJobsAuth("cookie_user_error", {
-      message: cookieUserError.message,
-    });
-  }
-
-  logEbookJobsAuth("cookie_user_checked", {
-    hasCookieUser: !!cookieUser?.id,
-  });
-
-  let resolvedUserId = cookieUser?.id ?? null;
-  let resolvedUserMeta = (cookieUser?.user_metadata ?? {}) as Record<string, unknown>;
-  let resolvedAppMeta = (cookieUser?.app_metadata ?? {}) as Record<string, unknown>;
-  let authSource: "cookie" | "session_verified" | "session_unverified" | "session_decoded" | "bearer_verified" | "bearer_decoded" =
-    "cookie";
-  let resolvedAccessToken: string | null = null;
-
-  let dbClient: Awaited<ReturnType<typeof createSupabaseServerClient>> | ReturnType<typeof createClient> = supabase;
-
-  if (!resolvedUserId) {
-    const {
-      data: { session },
-      error: sessionError,
-    } = await supabase.auth.getSession();
-
-    if (sessionError) {
-      logEbookJobsAuth("cookie_session_error", {
-        message: sessionError.message,
-      });
-    }
-
-    if (session?.access_token) {
-      resolvedAccessToken = session.access_token;
-
-      const { data, error } = await supabase.auth.getUser(session.access_token);
-
-      if (error) {
-        logEbookJobsAuth("session_token_user_error", {
-          message: error.message,
-        });
-      }
-
-      if (!error && data.user?.id) {
-        resolvedUserId = data.user.id;
-        resolvedUserMeta = (data.user.user_metadata ?? {}) as Record<string, unknown>;
-        resolvedAppMeta = (data.user.app_metadata ?? {}) as Record<string, unknown>;
-        authSource = "session_verified";
-      } else if (session.user?.id) {
-        resolvedUserId = session.user.id;
-        resolvedUserMeta = (session.user.user_metadata ?? {}) as Record<string, unknown>;
-        resolvedAppMeta = (session.user.app_metadata ?? {}) as Record<string, unknown>;
-        authSource = "session_unverified";
-
-        logEbookJobsAuth("session_user_fallback", {
-          userId: session.user.id,
-        });
-      } else {
-        const decodedUserId = decodeJwtUserId(session.access_token);
-        if (decodedUserId) {
-          resolvedUserId = decodedUserId;
-          authSource = "session_decoded";
-
-          logEbookJobsAuth("session_decoded_fallback", {
-            userId: decodedUserId,
-          });
-        }
-      }
-    }
-  }
-
-  if (!resolvedUserId) {
-    const authHeader = req.headers.get("authorization") ?? "";
-    const bearerMatch = authHeader.match(/^Bearer\s+(.+)$/i);
-    const accessToken = bearerMatch?.[1]?.trim();
-
-    if (accessToken) {
-      resolvedAccessToken = accessToken;
-
-      const { data, error } = await supabase.auth.getUser(accessToken);
-
-      if (error) {
-        logEbookJobsAuth("bearer_user_error", {
-          message: error.message,
-        });
-      }
-
-      if (!error && data.user?.id) {
-        resolvedUserId = data.user.id;
-        resolvedUserMeta = (data.user.user_metadata ?? {}) as Record<string, unknown>;
-        resolvedAppMeta = (data.user.app_metadata ?? {}) as Record<string, unknown>;
-        authSource = "bearer_verified";
-      } else {
-        const decodedUserId = decodeJwtUserId(accessToken);
-        if (decodedUserId) {
-          resolvedUserId = decodedUserId;
-          authSource = "bearer_decoded";
-
-          logEbookJobsAuth("bearer_decoded_fallback", {
-            userId: decodedUserId,
-          });
-        }
-      }
-    }
-  }
-
-  if (resolvedAccessToken) {
-    dbClient = createRlsClientWithAccessToken(resolvedAccessToken);
-  }
-
-  if (!resolvedUserId) {
-    logEbookJobsAuth("unauthorized", {
-      hasCookieHeader,
-      hasAuthorizationHeader,
-      hasSupabaseCookie: cookieSummary.hasSupabaseCookie,
-      cookieNames: cookieSummary.cookieNames,
-    });
-    return null;
-  }
-
-  logEbookJobsAuth("authorized", {
-    userId: resolvedUserId,
-    via: authSource,
-  });
-
-  const planTier = normalizePlanTier(resolvedUserMeta.plan_tier ?? resolvedAppMeta.plan_tier);
-
-  return {
-    db: dbClient,
-    userId: resolvedUserId,
-    planTier,
-  };
-}
 
 function tryCreateSupabaseAdminClient() {
   try {
@@ -352,21 +144,15 @@ async function incrementGenerationUsage(input: {
 
 export async function POST(req: Request) {
   const reqHeaders = await headers();
-  const cookieSummary = summarizeCookieHeader(req.headers.get("cookie"));
-  const auth = await getCurrentUserId(req);
+  const auth = await resolveEbookAuth(req);
   if (!auth) {
-    return NextResponse.json(
-      {
-        error: "Unauthorized.",
-        code: "ebooks_jobs_auth_missing_user",
-        has_cookie_header: cookieSummary.hasCookieHeader,
-        has_supabase_cookie: cookieSummary.hasSupabaseCookie,
-        cookie_names: cookieSummary.cookieNames,
-        has_authorization_header: req.headers.has("authorization"),
-      },
-      { status: 401 },
-    );
+    return NextResponse.json(buildEbookUnauthorizedPayload(req, "ebooks_jobs_auth_missing_user"), { status: 401 });
   }
+
+  logEbookJobsAuth("authorized", {
+    userId: auth.userId,
+    via: auth.authSource,
+  });
 
   const json = await req.json().catch(() => null);
   const parsed = createEbookJobSchema.safeParse(json);

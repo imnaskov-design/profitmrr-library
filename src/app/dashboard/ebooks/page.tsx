@@ -1,4 +1,6 @@
 import Link from "next/link";
+import { revalidatePath } from "next/cache";
+import { cookies } from "next/headers";
 
 import {
   coerceEbookListRow,
@@ -41,11 +43,52 @@ export default async function EbooksVaultPage() {
   const rows = (rowsRaw ?? []).map((row) => coerceEbookListRow(row as never));
   const totalGenerated = rows.length;
 
+  async function runBulkAction(formData: FormData) {
+    "use server";
+
+    const action = String(formData.get("action") ?? "").trim();
+    const ids = formData
+      .getAll("ebook_ids")
+      .map((value) => String(value ?? "").trim())
+      .filter(Boolean);
+
+    if (!ids.length) {
+      revalidatePath("/dashboard/ebooks");
+      return;
+    }
+
+    const cookieHeader = (await cookies())
+      .getAll()
+      .map(({ name, value }) => `${name}=${value}`)
+      .join("; ");
+
+    const host = process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000";
+
+    await fetch(`${host}/api/ebooks/bulk-action`, {
+      method: "POST",
+      headers: {
+        "content-type": "application/json",
+        ...(cookieHeader
+          ? {
+              cookie: cookieHeader,
+            }
+          : null),
+      },
+      body: JSON.stringify({
+        action: action === "archive" || action === "restore" || action === "delete_soft" ? action : "archive",
+        ebook_ids: ids,
+      }),
+      cache: "no-store",
+    }).catch(() => null);
+
+    revalidatePath("/dashboard/ebooks");
+  }
+
   return (
     <div className="relative">
       {rows.length ? (
         <div className="fixed bottom-10 left-1/2 z-40 hidden -translate-x-1/2 transition-all duration-300 xl:block">
-        <div className="flex items-center gap-8 rounded-3xl border border-primary/30 bg-black/80 px-8 py-5 glass-card gold-border-glow">
+        <form action={runBulkAction} className="flex items-center gap-8 rounded-3xl border border-primary/30 bg-black/80 px-8 py-5 glass-card gold-border-glow">
           <div className="flex items-center gap-4">
             <span className="flex h-8 w-8 items-center justify-center rounded-full bg-primary/20 text-sm font-black text-primary">
               {rows.length}
@@ -54,15 +97,29 @@ export default async function EbooksVaultPage() {
           </div>
           <div className="h-6 w-px bg-white/10"></div>
           <div className="flex items-center gap-4">
-            <button className="text-xs font-black uppercase tracking-widest text-white/50 transition-colors hover:text-white">
-              Deselect All
+            {rows.map((row) => (
+              <input key={row.id} type="hidden" name="ebook_ids" value={row.id} />
+            ))}
+            <button
+              type="submit"
+              name="action"
+              value="archive"
+              className="flex items-center gap-2 rounded-xl border border-white/20 bg-white/5 px-6 py-3 text-xs font-black uppercase tracking-widest text-white transition-all hover:bg-white/10"
+            >
+              <span className="material-symbols-outlined text-sm">inventory_2</span>
+              Archive All
             </button>
-            <button className="flex items-center gap-2 rounded-xl bg-red-500 px-6 py-3 text-xs font-black uppercase tracking-widest text-white transition-all hover:bg-red-600">
+            <button
+              type="submit"
+              name="action"
+              value="delete_soft"
+              className="flex items-center gap-2 rounded-xl bg-red-500 px-6 py-3 text-xs font-black uppercase tracking-widest text-white transition-all hover:bg-red-600"
+            >
               <span className="material-symbols-outlined text-sm">delete</span>
-              Delete Selected
+              Soft Delete All
             </button>
           </div>
-        </div>
+        </form>
         </div>
       ) : null}
 

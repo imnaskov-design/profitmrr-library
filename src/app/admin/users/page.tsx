@@ -4,7 +4,6 @@ import { formatDateShort } from "@/lib/subscription";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { GlassCard } from "@/components/ui/GlassCard";
 import { GlassButton } from "@/components/ui/GlassButton";
-import { AnimatedInput } from "@/components/ui/AnimatedInput";
 import { Reveal } from "@/components/ui/StaggerReveal";
 
 type SearchParams = { [key: string]: string | string[] | undefined };
@@ -54,7 +53,7 @@ export default async function AdminUsersPage({
         <div>
           <h1 className="text-2xl font-bold tracking-tight text-zinc-900">Users</h1>
           <p className="mt-1 text-sm text-zinc-500">
-            CRM overview. For large datasets we'll move aggregations into SQL.
+            CRM overview. For large datasets we&apos;ll move aggregations into SQL.
           </p>
         </div>
       </Reveal>
