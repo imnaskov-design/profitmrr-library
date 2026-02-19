@@ -53,17 +53,42 @@ function quotaError(input: {
 
 async function getCurrentUserId() {
   const supabase = await createSupabaseServerClient();
+  const admin = createSupabaseAdminClient();
+  const reqHeaders = await headers();
+
   const {
-    data: { user },
+    data: { user: cookieUser },
   } = await supabase.auth.getUser();
 
-  if (!user?.id) return null;
+  let resolvedUser = cookieUser;
+  let useAdminDb = false;
 
-  const userMeta = (user.user_metadata ?? {}) as Record<string, unknown>;
-  const appMeta = (user.app_metadata ?? {}) as Record<string, unknown>;
+  if (!resolvedUser?.id) {
+    const authHeader = reqHeaders.get("authorization") ?? "";
+    const bearerMatch = authHeader.match(/^Bearer\s+(.+)$/i);
+    const accessToken = bearerMatch?.[1]?.trim();
+
+    if (accessToken) {
+      const { data, error } = await admin.auth.getUser(accessToken);
+      if (!error && data.user?.id) {
+        resolvedUser = data.user;
+        useAdminDb = true;
+      }
+    }
+  }
+
+  if (!resolvedUser?.id) return null;
+
+  const userMeta = (resolvedUser.user_metadata ?? {}) as Record<string, unknown>;
+  const appMeta = (resolvedUser.app_metadata ?? {}) as Record<string, unknown>;
   const planTier = normalizePlanTier(userMeta.plan_tier ?? appMeta.plan_tier);
 
-  return { supabase, admin: createSupabaseAdminClient(), userId: user.id, planTier };
+  return {
+    db: useAdminDb ? admin : supabase,
+    admin,
+    userId: resolvedUser.id,
+    planTier,
+  };
 }
 
 async function enforceGenerationQuota(input: {
@@ -163,9 +188,9 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "Invalid idempotency key." }, { status: 400 });
   }
 
-  const { supabase, admin, userId, planTier } = auth;
+  const { db, admin, userId, planTier } = auth;
 
-  const { data: existing } = await supabase
+  const { data: existing } = await db
     .from("ebook_jobs")
     .select("id, ebook_id, user_id, idempotency_key, job_type, status, step, progress_pct, error_code, error_message, created_at, finished_at")
     .eq("user_id", userId)
@@ -190,7 +215,7 @@ export async function POST(req: Request) {
   const jobId = randomUUID();
   const nowIso = new Date().toISOString();
 
-  const { error: ebookErr } = await supabase.from("ebooks").insert({
+  const { error: ebookErr } = await db.from("ebooks").insert({
     id: ebookId,
     user_id: userId,
     title: input.title?.trim() || `${input.niche} Playbook`,
@@ -209,7 +234,7 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "Unable to create eBook." }, { status: 500 });
   }
 
-  const { error: jobErr } = await supabase.from("ebook_jobs").insert({
+  const { error: jobErr } = await db.from("ebook_jobs").insert({
     id: jobId,
     ebook_id: ebookId,
     user_id: userId,
@@ -234,11 +259,11 @@ export async function POST(req: Request) {
   });
 
   if (jobErr) {
-    await supabase.from("ebooks").delete().eq("id", ebookId).eq("user_id", userId);
+    await db.from("ebooks").delete().eq("id", ebookId).eq("user_id", userId);
     return NextResponse.json({ error: "Unable to create generation job." }, { status: 500 });
   }
 
-  const { error: activateErr } = await supabase
+  const { error: activateErr } = await db
     .from("ebooks")
     .update({
       active_job_id: jobId,
