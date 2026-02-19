@@ -2,8 +2,28 @@ import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 
 import { getPublicEnv } from "@/lib/env/public";
+import type { ResponseCookie } from "next/dist/compiled/@edge-runtime/cookies";
 
 const REMEMBER_COOKIE = "pmrr_remember";
+
+function normalizeCookieOptionsForRemember(
+  options: Partial<ResponseCookie> | undefined,
+  remember: boolean,
+): Partial<ResponseCookie> | undefined {
+  if (remember) return options;
+  if (!options) return options;
+
+  // Keep delete cookies working.
+  // Supabase sets removal cookies with maxAge: 0.
+  if (typeof options.maxAge === "number" && options.maxAge === 0) {
+    return options;
+  }
+
+  const nextOptions = { ...options };
+  delete nextOptions.expires;
+  delete nextOptions.maxAge;
+  return nextOptions;
+}
 
 export async function middleware(request: NextRequest) {
   // Don’t block rendering if the project is not configured yet.
@@ -15,11 +35,7 @@ export async function middleware(request: NextRequest) {
     return NextResponse.next();
   }
 
-  const response = NextResponse.next({
-    request: {
-      headers: request.headers,
-    },
-  });
+  let response = NextResponse.next({ request });
 
   const remember = request.cookies.get(REMEMBER_COOKIE)?.value !== "0";
 
@@ -32,21 +48,23 @@ export async function middleware(request: NextRequest) {
           return request.cookies.getAll();
         },
         setAll(cookiesToSet) {
-          cookiesToSet.forEach(({ name, value, options }) => {
-            // If remember-me is disabled, keep auth cookies as session cookies.
-            // We do this by removing persistence attributes (Expires/Max-Age)
-            // for non-delete cookies.
-            let nextOptions = options;
-            if (!remember) {
-              const isDelete = typeof options.maxAge === "number" && options.maxAge === 0;
-              if (!isDelete) {
-                nextOptions = { ...options };
-                delete nextOptions.expires;
-                delete nextOptions.maxAge;
-              }
-            }
+          // Ensure freshly rotated cookies are also available to server code
+          // in this same request lifecycle.
+          cookiesToSet.forEach(({ name, value }) => {
+            request.cookies.set(name, value);
+          });
 
-            response.cookies.set(name, value, nextOptions);
+          // Recreate the response with the updated request cookies.
+          response = NextResponse.next({ request });
+
+          cookiesToSet.forEach(({ name, value, options }) => {
+            const nextOptions = normalizeCookieOptionsForRemember(options, remember);
+
+            if (nextOptions) {
+              response.cookies.set(name, value, nextOptions);
+            } else {
+              response.cookies.set(name, value);
+            }
           });
         },
       },

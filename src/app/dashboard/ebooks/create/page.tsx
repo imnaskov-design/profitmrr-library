@@ -112,6 +112,91 @@ export default function CreateEbooksPage() {
     return () => clearInterval(timer);
   }, [jobId, jobStatus, router]);
 
+  async function resolveAccessTokenForGenerate() {
+    const supabase = await createSupabaseBrowserClient();
+
+    const {
+      data: { session: initialSession },
+    } = await supabase.auth.getSession();
+
+    if (initialSession?.access_token) {
+      return {
+        supabase,
+        accessToken: initialSession.access_token,
+      };
+    }
+
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+
+    if (!user?.id) {
+      return {
+        supabase,
+        accessToken: null,
+      };
+    }
+
+    const { data: refreshed } = await supabase.auth.refreshSession();
+    if (refreshed.session?.access_token) {
+      return {
+        supabase,
+        accessToken: refreshed.session.access_token,
+      };
+    }
+
+    const {
+      data: { session: recoveredSession },
+    } = await supabase.auth.getSession();
+
+    return {
+      supabase,
+      accessToken: recoveredSession?.access_token ?? null,
+    };
+  }
+
+  async function postCreateJob(input: {
+    payload: {
+      idempotency_key: string;
+      title: string;
+      niche: string;
+      category: string;
+      tone: string;
+      language: string;
+      target_page_count: number;
+      uniqueness_mode: boolean;
+      preferred_profile: Profile;
+      preferred_formats: Format[];
+    };
+    accessToken: string | null;
+  }) {
+    const res = await fetch("/api/ebooks/jobs", {
+      method: "POST",
+      credentials: "include",
+      headers: {
+        "content-type": "application/json",
+        ...(input.accessToken
+          ? {
+              authorization: `Bearer ${input.accessToken}`,
+            }
+          : null),
+      },
+      body: JSON.stringify(input.payload),
+    });
+
+    const data = (await res.json().catch(() => null)) as
+      | {
+          error?: string;
+          code?: string;
+          job_id?: string;
+          ebook_id?: string;
+          status?: string;
+        }
+      | null;
+
+    return { res, data };
+  }
+
   async function onGenerate(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
     setError(null);
@@ -137,34 +222,34 @@ export default function CreateEbooksPage() {
       preferred_formats: selectedFormats,
     };
 
-    const supabase = await createSupabaseBrowserClient();
-    const {
-      data: { session },
-    } = await supabase.auth.getSession();
+    const authContext = await resolveAccessTokenForGenerate();
+    if (!authContext.accessToken) {
+      setLoading(false);
+      setJobStatus("failed");
+      setError("Session expired. Please log in again and retry.");
+      return;
+    }
 
-    const res = await fetch("/api/ebooks/jobs", {
-      method: "POST",
-      credentials: "include",
-      headers: {
-        "content-type": "application/json",
-        ...(session?.access_token
-          ? {
-              authorization: `Bearer ${session.access_token}`,
-            }
-          : null),
-      },
-      body: JSON.stringify(payload),
+    let { res, data } = await postCreateJob({
+      payload,
+      accessToken: authContext.accessToken,
     });
 
-    const data = (await res.json().catch(() => null)) as
-      | {
-          error?: string;
-          code?: string;
-          job_id?: string;
-          ebook_id?: string;
-          status?: string;
-        }
-      | null;
+    // One-time recovery for edge cases where auth cookies/token rotate between
+    // submit and API request handling.
+    if (res.status === 401) {
+      const { data: refreshed } = await authContext.supabase.auth.refreshSession();
+      const retryToken = refreshed.session?.access_token ?? null;
+
+      if (retryToken) {
+        const retried = await postCreateJob({
+          payload,
+          accessToken: retryToken,
+        });
+        res = retried.res;
+        data = retried.data;
+      }
+    }
 
     if (!res.ok) {
       setLoading(false);
