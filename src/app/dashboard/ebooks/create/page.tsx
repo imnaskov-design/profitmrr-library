@@ -3,6 +3,8 @@
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 
+import { createSupabaseBrowserClient } from "@/lib/supabase/browser";
+
 type JobStatus = "idle" | "queued" | "running" | "succeeded" | "failed" | "cancelled";
 type Profile = "us_letter" | "a4";
 type Format = "pdf" | "docx" | "epub";
@@ -135,9 +137,22 @@ export default function CreateEbooksPage() {
       preferred_formats: selectedFormats,
     };
 
+    const supabase = await createSupabaseBrowserClient();
+    const {
+      data: { session },
+    } = await supabase.auth.getSession();
+
     const res = await fetch("/api/ebooks/jobs", {
       method: "POST",
-      headers: { "content-type": "application/json" },
+      credentials: "include",
+      headers: {
+        "content-type": "application/json",
+        ...(session?.access_token
+          ? {
+              authorization: `Bearer ${session.access_token}`,
+            }
+          : null),
+      },
       body: JSON.stringify(payload),
     });
 
