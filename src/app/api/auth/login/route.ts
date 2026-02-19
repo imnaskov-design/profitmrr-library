@@ -116,5 +116,5 @@ export async function POST(req: Request) {
       : null),
   });
 
-  return NextResponse.json({ ok: true, remember });
+  return NextResponse.json({ ok: true, remember, resolved_email: email });
 }

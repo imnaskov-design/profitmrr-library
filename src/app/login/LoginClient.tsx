@@ -26,8 +26,14 @@ export default function LoginClient({ nextPath }: { nextPath: string }) {
       body: JSON.stringify({ identifier, password, remember }),
     });
 
+    const data = (await res.json().catch(() => null)) as
+      | {
+          error?: string;
+          resolved_email?: string;
+        }
+      | null;
+
     if (!res.ok) {
-      const data = (await res.json().catch(() => null)) as { error?: string } | null;
       setLoading(false);
       setError(data?.error ?? "Unable to log in.");
       return;
@@ -35,7 +41,21 @@ export default function LoginClient({ nextPath }: { nextPath: string }) {
 
     // Ensure the browser client exists so subsequent navigation has a hydrated client.
     // (Session is stored in cookies via SSR helpers.)
-    await createSupabaseBrowserClient();
+    const supabase = await createSupabaseBrowserClient();
+
+    // Force browser-side Supabase session persistence too.
+    // Some edge deployments can otherwise keep only app cookies (pmrr_remember)
+    // without the sb-* auth cookies needed by server auth resolution.
+    const emailForBrowserSignIn = data?.resolved_email ?? identifier.trim();
+
+    try {
+      await supabase.auth.signInWithPassword({
+        email: emailForBrowserSignIn,
+        password,
+      });
+    } catch {
+      // Ignore client hydration sign-in errors; server login already succeeded.
+    }
 
     setLoading(false);
 
