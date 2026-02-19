@@ -53,9 +53,8 @@ function quotaError(input: {
   );
 }
 
-async function getCurrentUserId() {
+async function getCurrentUserId(req: Request) {
   const supabase = await createSupabaseServerClient();
-  const reqHeaders = await headers();
 
   const {
     data: { user: cookieUser },
@@ -65,7 +64,7 @@ async function getCurrentUserId() {
   let dbClient: Awaited<ReturnType<typeof createSupabaseServerClient>> | ReturnType<typeof createClient> = supabase;
 
   if (!resolvedUser?.id) {
-    const authHeader = reqHeaders.get("authorization") ?? "";
+    const authHeader = req.headers.get("authorization") ?? "";
     const bearerMatch = authHeader.match(/^Bearer\s+(.+)$/i);
     const accessToken = bearerMatch?.[1]?.trim();
 
@@ -192,7 +191,7 @@ async function incrementGenerationUsage(input: {
 
 export async function POST(req: Request) {
   const reqHeaders = await headers();
-  const auth = await getCurrentUserId();
+  const auth = await getCurrentUserId(req);
   if (!auth) {
     return NextResponse.json({ error: "Unauthorized." }, { status: 401 });
   }
