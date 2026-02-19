@@ -53,12 +53,27 @@ function quotaError(input: {
   );
 }
 
+function logEbookJobsAuth(event: string, meta: Record<string, unknown>) {
+  console.info("[ebooks.jobs.auth]", event, meta);
+}
+
 async function getCurrentUserId(req: Request) {
   const supabase = await createSupabaseServerClient();
+  const hasCookieHeader = req.headers.has("cookie");
+  const hasAuthorizationHeader = req.headers.has("authorization");
+
+  logEbookJobsAuth("start", {
+    hasCookieHeader,
+    hasAuthorizationHeader,
+  });
 
   const {
     data: { user: cookieUser },
   } = await supabase.auth.getUser();
+
+  logEbookJobsAuth("cookie_user_checked", {
+    hasCookieUser: !!cookieUser?.id,
+  });
 
   let resolvedUser = cookieUser;
   let dbClient: Awaited<ReturnType<typeof createSupabaseServerClient>> | ReturnType<typeof createClient> = supabase;
@@ -70,6 +85,13 @@ async function getCurrentUserId(req: Request) {
 
     if (accessToken) {
       const { data, error } = await supabase.auth.getUser(accessToken);
+
+      if (error) {
+        logEbookJobsAuth("bearer_user_error", {
+          message: error.message,
+        });
+      }
+
       if (!error && data.user?.id) {
         resolvedUser = data.user;
 
@@ -90,7 +112,18 @@ async function getCurrentUserId(req: Request) {
     }
   }
 
-  if (!resolvedUser?.id) return null;
+  if (!resolvedUser?.id) {
+    logEbookJobsAuth("unauthorized", {
+      hasCookieHeader,
+      hasAuthorizationHeader,
+    });
+    return null;
+  }
+
+  logEbookJobsAuth("authorized", {
+    userId: resolvedUser.id,
+    via: cookieUser?.id ? "cookie" : "bearer",
+  });
 
   const userMeta = (resolvedUser.user_metadata ?? {}) as Record<string, unknown>;
   const appMeta = (resolvedUser.app_metadata ?? {}) as Record<string, unknown>;
@@ -193,7 +226,15 @@ export async function POST(req: Request) {
   const reqHeaders = await headers();
   const auth = await getCurrentUserId(req);
   if (!auth) {
-    return NextResponse.json({ error: "Unauthorized." }, { status: 401 });
+    return NextResponse.json(
+      {
+        error: "Unauthorized.",
+        code: "ebooks_jobs_auth_missing_user",
+        has_cookie_header: req.headers.has("cookie"),
+        has_authorization_header: req.headers.has("authorization"),
+      },
+      { status: 401 },
+    );
   }
 
   const json = await req.json().catch(() => null);
