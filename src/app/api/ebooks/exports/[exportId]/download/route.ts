@@ -1,18 +1,11 @@
 import { NextResponse } from "next/server";
 
+import { createSignedExportDownloadUrl, inferDownloadFileName } from "@/lib/ebook-exports";
 import { buildEbookUnauthorizedPayload, resolveEbookAuth } from "@/lib/ebooks-auth";
 
 type Params = {
   exportId: string;
 };
-
-function inferFileName(format: string) {
-  if (format === "pdf" || format === "docx" || format === "epub") {
-    return `ebook.${format}`;
-  }
-
-  return "ebook.bin";
-}
 
 export async function GET(
   req: Request,
@@ -56,18 +49,29 @@ export async function GET(
     return NextResponse.redirect(directPath, 302);
   }
 
-  const fallbackName = inferFileName(row.format ?? "");
+  try {
+    const signedUrl = await createSignedExportDownloadUrl({
+      r2Key: directPath,
+      expiresSeconds: 600,
+    });
 
-  return NextResponse.json(
-    {
-      error: "Export delivery is not configured for private object paths yet.",
-      code: "ebooks_export_delivery_not_configured",
-      export_id: row.id,
-      ebook_id: row.ebook_id,
-      format: row.format,
-      suggested_file_name: fallbackName,
-    },
-    { status: 501 },
-  );
+    const res = NextResponse.redirect(signedUrl, 302);
+    res.headers.set("cache-control", "no-store");
+    return res;
+  } catch {
+    const fallbackName = inferDownloadFileName(row.format ?? "");
+
+    return NextResponse.json(
+      {
+        error: "Export file is currently unavailable.",
+        code: "ebooks_export_download_unavailable",
+        export_id: row.id,
+        ebook_id: row.ebook_id,
+        format: row.format,
+        suggested_file_name: fallbackName,
+      },
+      { status: 503 },
+    );
+  }
 }
 
