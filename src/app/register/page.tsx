@@ -11,15 +11,16 @@ function RegisterPageContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
 
-  const initialEmail = searchParams.get("email") ?? "";
-  const initialToken = searchParams.get("token") ?? "";
+  const initialEmail = (searchParams.get("email") ?? "").trim().toLowerCase();
+  const initialToken = (searchParams.get("token") ?? "").trim();
+  const hasInviteContext = Boolean(initialEmail && initialToken);
 
-  const [email, setEmail] = useState(initialEmail);
+  const email = initialEmail;
+  const accessToken = initialToken;
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
-  const [accessToken, setAccessToken] = useState(initialToken);
 
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -27,9 +28,9 @@ function RegisterPageContent() {
     setSuccessMessage(null);
     setLoading(true);
 
-    if (!accessToken.trim()) {
+    if (!hasInviteContext) {
       setLoading(false);
-      setError("Missing invite token. Use the registration link from your email.");
+      setError("Registration is invite-only. Use the private registration link from your email.");
       return;
     }
 
@@ -37,8 +38,8 @@ function RegisterPageContent() {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        token: accessToken.trim(),
-        email: email.trim(),
+        token: accessToken,
+        email,
       }),
     });
 
@@ -55,7 +56,7 @@ function RegisterPageContent() {
       password,
       options: {
         data: {
-          invite_token: accessToken.trim(),
+          invite_token: accessToken,
         },
       },
     });
@@ -68,15 +69,6 @@ function RegisterPageContent() {
     }
 
     if (data.user && !data.session) {
-      await fetch("/api/auth/consume-register-invite", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          token: accessToken.trim(),
-          email: email.trim(),
-        }),
-      }).catch(() => null);
-
       setSuccessMessage(
         "Account created. Check your email to confirm your address, then log in.",
       );
@@ -105,80 +97,73 @@ function RegisterPageContent() {
           <header className="mb-8">
             <h1 className="mb-3 text-3xl font-bold text-white">Create your account</h1>
             <p className="max-w-sm text-sm leading-relaxed text-white/50">
-              Use the same email you used at checkout to link your subscription.
+              Registration is invite-only and available through the private link in your payment confirmation email.
             </p>
           </header>
 
-          <form onSubmit={onSubmit} className="space-y-5">
-            <div>
-              <label className="mb-2.5 block text-sm font-semibold text-white/80" htmlFor="register-email">
-                Email
-              </label>
-              <input
-                id="register-email"
-                type="email"
-                required
-                autoComplete="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                className="w-full rounded-xl border border-gray-800 bg-black/40 px-4 py-3.5 text-white placeholder:text-white/30 outline-none transition-all duration-200 focus:border-primary focus:ring-1 focus:ring-primary"
-                placeholder="you@example.com"
-              />
+          {!hasInviteContext ? (
+            <div className="rounded-2xl border border-amber-500/30 bg-amber-500/10 p-5 text-sm text-amber-100">
+              <p className="font-semibold">Registration link required.</p>
+              <p className="mt-2 text-amber-100/90">
+                Open the private registration link sent to your checkout email after payment.
+              </p>
             </div>
-
-            <div>
-              <label className="mb-2.5 block text-sm font-semibold text-white/80" htmlFor="register-token">
-                Access Token
-              </label>
-              <input
-                id="register-token"
-                type="text"
-                required
-                value={accessToken}
-                onChange={(e) => setAccessToken(e.target.value)}
-                className="w-full rounded-xl border border-gray-800 bg-black/40 px-4 py-3.5 text-white placeholder:text-white/30 outline-none transition-all duration-200 focus:border-primary focus:ring-1 focus:ring-primary"
-                placeholder="Enter the token received in your email"
-              />
-            </div>
-
-            <div>
-              <label className="mb-2.5 block text-sm font-semibold text-white/80" htmlFor="register-password">
-                Password
-              </label>
-              <input
-                id="register-password"
-                type="password"
-                required
-                autoComplete="new-password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                className="w-full rounded-xl border border-gray-800 bg-black/40 px-4 py-3.5 text-white placeholder:text-white/30 outline-none transition-all duration-200 focus:border-primary focus:ring-1 focus:ring-primary"
-                placeholder="••••••••"
-              />
-            </div>
-
-            {error ? (
-              <div className="rounded-xl border border-red-500/40 bg-red-500/10 px-3 py-2 text-sm text-red-300">
-                {error}
+          ) : (
+            <form onSubmit={onSubmit} className="space-y-5">
+              <div>
+                <label className="mb-2.5 block text-sm font-semibold text-white/80" htmlFor="register-email">
+                  Checkout email
+                </label>
+                <input
+                  id="register-email"
+                  type="email"
+                  required
+                  autoComplete="email"
+                  value={email}
+                  readOnly
+                  className="w-full cursor-not-allowed rounded-xl border border-gray-800 bg-black/40 px-4 py-3.5 text-white/80 placeholder:text-white/30 outline-none"
+                />
               </div>
-            ) : null}
 
-            {successMessage ? (
-              <div className="rounded-xl border border-emerald-500/40 bg-emerald-500/10 px-3 py-2 text-sm text-emerald-300">
-                {successMessage}
+              <div>
+                <label className="mb-2.5 block text-sm font-semibold text-white/80" htmlFor="register-password">
+                  Password
+                </label>
+                <input
+                  id="register-password"
+                  type="password"
+                  required
+                  autoComplete="new-password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  className="w-full rounded-xl border border-gray-800 bg-black/40 px-4 py-3.5 text-white placeholder:text-white/30 outline-none transition-all duration-200 focus:border-primary focus:ring-1 focus:ring-primary"
+                  placeholder="••••••••"
+                />
               </div>
-            ) : null}
 
-            <div className="pt-2">
-              <button
-                type="submit"
-                disabled={loading}
-                className="flex w-full items-center justify-center rounded-xl bg-primary px-4 py-4 text-base font-bold text-black shadow-xl shadow-primary/10 transition-all duration-200 hover:bg-[#ffd54f] active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-60"
-              >
-                {loading ? "Creating…" : "Create account"}
-              </button>
-            </div>
-          </form>
+              {error ? (
+                <div className="rounded-xl border border-red-500/40 bg-red-500/10 px-3 py-2 text-sm text-red-300">
+                  {error}
+                </div>
+              ) : null}
+
+              {successMessage ? (
+                <div className="rounded-xl border border-emerald-500/40 bg-emerald-500/10 px-3 py-2 text-sm text-emerald-300">
+                  {successMessage}
+                </div>
+              ) : null}
+
+              <div className="pt-2">
+                <button
+                  type="submit"
+                  disabled={loading}
+                  className="flex w-full items-center justify-center rounded-xl bg-primary px-4 py-4 text-base font-bold text-black shadow-xl shadow-primary/10 transition-all duration-200 hover:bg-[#ffd54f] active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-60"
+                >
+                  {loading ? "Creating…" : "Create account"}
+                </button>
+              </div>
+            </form>
+          )}
         </div>
 
         <div className="mt-10 text-center">

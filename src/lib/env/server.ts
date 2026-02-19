@@ -7,6 +7,7 @@ import { readEnvString } from "@/lib/env/read";
 const coreServerEnvSchema = z.object({
   APP_BASE_URL: z.string().url(),
   DOWNLOADS_PER_DAY_LIMIT: z.coerce.number().int().min(1).max(500).default(50),
+  EBOOK_JOB_IDEMPOTENCY_TTL_HOURS: z.coerce.number().int().min(1).max(24 * 14).default(72),
 });
 
 const supabaseAdminEnvSchema = z.object({
@@ -49,6 +50,7 @@ export function getServerEnv() {
   coreCached = coreServerEnvSchema.parse({
     APP_BASE_URL: readEnvString("APP_BASE_URL"),
     DOWNLOADS_PER_DAY_LIMIT: readEnvString("DOWNLOADS_PER_DAY_LIMIT"),
+    EBOOK_JOB_IDEMPOTENCY_TTL_HOURS: readEnvString("EBOOK_JOB_IDEMPOTENCY_TTL_HOURS"),
   });
 
   return coreCached;

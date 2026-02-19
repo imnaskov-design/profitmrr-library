@@ -1,40 +1,54 @@
 import Link from "next/link";
 
-const ebookItems = [
-  {
-    id: "future-of-ai-design",
-    title: "The Future of AI in Design",
-    niche: "TECHNOLOGY",
-    pages: 42,
-    createdAt: "Jan 24",
-    gradient: "from-indigo-600 to-purple-800",
-  },
-  {
-    id: "mastering-digital-growth",
-    title: "Mastering Digital Growth",
-    niche: "MARKETING",
-    pages: 15,
-    createdAt: "Oct 22",
-    gradient: "from-cyan-600 to-blue-800",
-  },
-  {
-    id: "mindful-money-playbook",
-    title: "Mindful Money Playbook",
-    niche: "FINANCE",
-    pages: 33,
-    createdAt: "Feb 06",
-    gradient: "from-emerald-600 to-teal-700",
-  },
-];
+import {
+  coerceEbookListRow,
+  formatEbookStatusLabel,
+  type EbookListRow,
+} from "@/lib/ebooks";
+import { formatDateShort } from "@/lib/subscription";
+import { createSupabaseServerClient } from "@/lib/supabase/server";
 
-export default function EbooksVaultPage() {
+function gradientFromNiche(niche: string | null) {
+  const key = (niche ?? "").toLowerCase();
+  if (key.includes("market")) return "from-cyan-600 to-blue-800";
+  if (key.includes("finance") || key.includes("money")) return "from-emerald-600 to-teal-700";
+  if (key.includes("health")) return "from-fuchsia-600 to-rose-800";
+  return "from-indigo-600 to-purple-800";
+}
+
+function statusClass(status: EbookListRow["status"]) {
+  if (status === "ready") return "bg-emerald-500/10 text-emerald-300";
+  if (status === "generating") return "bg-primary/10 text-primary";
+  if (status === "failed") return "bg-rose-500/10 text-rose-300";
+  if (status === "archived") return "bg-zinc-500/10 text-zinc-300";
+  return "bg-amber-500/10 text-amber-300";
+}
+
+export default async function EbooksVaultPage() {
+  const supabase = await createSupabaseServerClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  const { data: rowsRaw } = user?.id
+    ? await supabase
+        .from("ebooks")
+        .select("id, title, niche, category, tone, language, status, target_page_count, created_at")
+        .eq("user_id", user.id)
+        .order("created_at", { ascending: false })
+    : { data: [] as unknown[] };
+
+  const rows = (rowsRaw ?? []).map((row) => coerceEbookListRow(row as never));
+  const totalGenerated = rows.length;
+
   return (
     <div className="relative">
-      <div className="fixed bottom-10 left-1/2 z-40 -translate-x-1/2 transition-all duration-300">
+      {rows.length ? (
+        <div className="fixed bottom-10 left-1/2 z-40 hidden -translate-x-1/2 transition-all duration-300 xl:block">
         <div className="flex items-center gap-8 rounded-3xl border border-primary/30 bg-black/80 px-8 py-5 glass-card gold-border-glow">
           <div className="flex items-center gap-4">
             <span className="flex h-8 w-8 items-center justify-center rounded-full bg-primary/20 text-sm font-black text-primary">
-              {ebookItems.length}
+              {rows.length}
             </span>
             <p className="whitespace-nowrap text-sm font-bold text-white">Items selected</p>
           </div>
@@ -49,7 +63,8 @@ export default function EbooksVaultPage() {
             </button>
           </div>
         </div>
-      </div>
+        </div>
+      ) : null}
 
       <header className="mb-12 flex flex-col justify-between gap-6 lg:flex-row lg:items-end">
         <div>
@@ -61,11 +76,11 @@ export default function EbooksVaultPage() {
         <div className="flex gap-4">
           <div className="min-w-[180px] rounded-2xl border border-white/5 px-6 py-4 glass-card">
             <p className="text-[10px] font-black uppercase tracking-widest text-white/30">Total Generated</p>
-            <p className="mt-1 text-2xl font-black text-primary">124</p>
+            <p className="mt-1 text-2xl font-black text-primary">{totalGenerated}</p>
           </div>
           <div className="min-w-[180px] rounded-2xl border border-white/5 px-6 py-4 glass-card">
-            <p className="text-[10px] font-black uppercase tracking-widest text-white/30">Storage Used</p>
-            <p className="mt-1 text-2xl font-black text-primary">1.2 GB</p>
+            <p className="text-[10px] font-black uppercase tracking-widest text-white/30">Ready Files</p>
+            <p className="mt-1 text-2xl font-black text-primary">{rows.filter((r) => r.status === "ready").length}</p>
           </div>
         </div>
       </header>
@@ -124,7 +139,7 @@ export default function EbooksVaultPage() {
           </div>
         </Link>
 
-        {ebookItems.map((item) => (
+        {rows.map((item) => (
           <article
             key={item.id}
             className="group relative flex h-full flex-col overflow-hidden rounded-[2rem] border border-white/5 transition-all hover:border-primary/30 glass-card"
@@ -145,11 +160,11 @@ export default function EbooksVaultPage() {
               <span className="material-symbols-outlined text-lg">close</span>
             </button>
 
-            <div className={`relative flex h-56 flex-col justify-end overflow-hidden bg-gradient-to-br p-8 ${item.gradient}`}>
+            <div className={`relative flex h-56 flex-col justify-end overflow-hidden bg-gradient-to-br p-8 ${gradientFromNiche(item.niche)}`}>
               <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(255,255,255,0.1),transparent)]"></div>
               <div className="flex flex-col gap-3">
                 <span className="relative z-10 w-fit rounded-lg bg-white/10 px-3 py-1.5 text-[10px] font-black tracking-wider text-white backdrop-blur-md">
-                  {item.niche}
+                  {(item.niche ?? "GENERAL").toUpperCase()}
                 </span>
                 <h3 className="relative z-10 text-2xl font-black leading-tight text-white">{item.title}</h3>
               </div>
@@ -160,28 +175,28 @@ export default function EbooksVaultPage() {
                 <div className="flex items-center gap-3 text-xs font-bold text-white/40">
                   <span className="flex items-center gap-1">
                     <span className="material-symbols-outlined text-sm">description</span>
-                    {item.pages}
+                    {item.target_page_count ?? "—"}
                   </span>
                   <span className="flex items-center gap-1">
                     <span className="material-symbols-outlined text-sm">calendar_today</span>
-                    {item.createdAt}
+                    {formatDateShort(item.created_at) ?? "—"}
                   </span>
                 </div>
-                <span className="rounded-full bg-primary/10 px-3 py-1 text-[10px] font-black uppercase text-primary">
-                  READY
+                <span className={`rounded-full px-3 py-1 text-[10px] font-black uppercase ${statusClass(item.status)}`}>
+                  {formatEbookStatusLabel(item.status)}
                 </span>
               </div>
 
               <div className="mt-auto grid grid-cols-2 gap-3">
                 <a
-                  href="#"
+                  href={`/dashboard/ebooks/${item.id}`}
                   className="flex items-center justify-center gap-2 rounded-xl bg-white/5 py-3 text-xs font-bold text-white/80 transition-all hover:bg-white/10"
                 >
                   <span className="material-symbols-outlined text-sm text-primary">description</span>
                   DOCX
                 </a>
                 <a
-                  href="#"
+                  href={`/dashboard/ebooks/${item.id}`}
                   className="flex items-center justify-center gap-2 rounded-xl bg-white/5 py-3 text-xs font-bold text-white/80 transition-all hover:bg-white/10"
                 >
                   <span className="material-symbols-outlined text-sm text-primary">picture_as_pdf</span>
@@ -199,6 +214,13 @@ export default function EbooksVaultPage() {
             </div>
           </article>
         ))}
+
+        {!rows.length ? (
+          <div className="col-span-full rounded-3xl border border-dashed border-white/10 p-10 text-center glass-card">
+            <p className="text-base font-bold text-white">No eBooks generated yet</p>
+            <p className="mt-2 text-sm text-white/50">Create your first eBook to populate this vault.</p>
+          </div>
+        ) : null}
       </div>
     </div>
   );
