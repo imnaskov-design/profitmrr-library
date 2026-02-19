@@ -82,10 +82,10 @@ export default function CreateEbooksPage() {
         if (!res.ok) return;
         const data = (await res.json().catch(() => null)) as
           | {
-              status?: string;
-              ebook_id?: string;
-              error_message?: string;
-            }
+            status?: string;
+            ebook_id?: string;
+            error_message?: string;
+          }
           | null;
 
         const status = toJobStatus(data?.status);
@@ -119,24 +119,20 @@ export default function CreateEbooksPage() {
       data: { session: initialSession },
     } = await supabase.auth.getSession();
 
+    // Check if token is valid and not expired (with 60s buffer)
     if (initialSession?.access_token) {
-      return {
-        supabase,
-        accessToken: initialSession.access_token,
-      };
+      const expiresAt = initialSession.expires_at ?? Infinity;
+      const now = Math.floor(Date.now() / 1000);
+
+      if (expiresAt > now + 60) {
+        return {
+          supabase,
+          accessToken: initialSession.access_token,
+        };
+      }
     }
 
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
-
-    if (!user?.id) {
-      return {
-        supabase,
-        accessToken: null,
-      };
-    }
-
+    // If expired or missing, try to refresh immediately
     const { data: refreshed } = await supabase.auth.refreshSession();
     if (refreshed.session?.access_token) {
       return {
@@ -145,14 +141,27 @@ export default function CreateEbooksPage() {
       };
     }
 
+    // Fallback: Check if user is logged in via API (handling cookie-only auth cases)
     const {
-      data: { session: recoveredSession },
-    } = await supabase.auth.getSession();
+      data: { user },
+    } = await supabase.auth.getUser();
+
+    if (user?.id) {
+      const { data: finalSession } = await supabase.auth.getSession();
+      if (finalSession.session?.access_token) {
+        return {
+          supabase,
+          accessToken: finalSession.session.access_token,
+        };
+      }
+    }
 
     return {
       supabase,
-      accessToken: recoveredSession?.access_token ?? null,
+      accessToken: null,
     };
+
+
   }
 
   async function postCreateJob(input: {
@@ -177,8 +186,8 @@ export default function CreateEbooksPage() {
         "content-type": "application/json",
         ...(input.accessToken
           ? {
-              authorization: `Bearer ${input.accessToken}`,
-            }
+            authorization: `Bearer ${input.accessToken}`,
+          }
           : null),
       },
       body: JSON.stringify(input.payload),
@@ -186,12 +195,12 @@ export default function CreateEbooksPage() {
 
     const data = (await res.json().catch(() => null)) as
       | {
-          error?: string;
-          code?: string;
-          job_id?: string;
-          ebook_id?: string;
-          status?: string;
-        }
+        error?: string;
+        code?: string;
+        job_id?: string;
+        ebook_id?: string;
+        status?: string;
+      }
       | null;
 
     return { res, data };
@@ -199,16 +208,16 @@ export default function CreateEbooksPage() {
 
   function formatUnauthorizedDebug(input: {
     data:
-      | {
-          error?: string;
-          code?: string;
-          debug_ref?: string;
-          has_cookie_header?: boolean;
-          has_supabase_cookie?: boolean;
-          cookie_names?: string[];
-          has_authorization_header?: boolean;
-        }
-      | null;
+    | {
+      error?: string;
+      code?: string;
+      debug_ref?: string;
+      has_cookie_header?: boolean;
+      has_supabase_cookie?: boolean;
+      cookie_names?: string[];
+      has_authorization_header?: boolean;
+    }
+    | null;
   }) {
     const code = String(input.data?.code ?? "").trim();
     const debugRef = String(input.data?.debug_ref ?? "").trim();
@@ -289,14 +298,14 @@ export default function CreateEbooksPage() {
         const debugMessage = formatUnauthorizedDebug({
           data: data as
             | {
-                error?: string;
-                code?: string;
-                debug_ref?: string;
-                has_cookie_header?: boolean;
-                has_supabase_cookie?: boolean;
-                cookie_names?: string[];
-                has_authorization_header?: boolean;
-              }
+              error?: string;
+              code?: string;
+              debug_ref?: string;
+              has_cookie_header?: boolean;
+              has_supabase_cookie?: boolean;
+              cookie_names?: string[];
+              has_authorization_header?: boolean;
+            }
             | null,
         });
 
@@ -567,9 +576,8 @@ export default function CreateEbooksPage() {
               <div className="flex gap-4">
                 <div className="flex flex-col items-center">
                   <div
-                    className={`flex size-8 items-center justify-center rounded-full ${
-                      draftingDone ? "bg-primary" : draftingActive ? "bg-primary/20 text-primary" : "bg-white/10 text-white/40"
-                    }`}
+                    className={`flex size-8 items-center justify-center rounded-full ${draftingDone ? "bg-primary" : draftingActive ? "bg-primary/20 text-primary" : "bg-white/10 text-white/40"
+                      }`}
                   >
                     <span className="material-symbols-outlined text-lg">sync</span>
                   </div>
@@ -583,9 +591,8 @@ export default function CreateEbooksPage() {
 
               <div className="flex gap-4">
                 <div
-                  className={`flex size-8 items-center justify-center rounded-full ${
-                    outputDone ? "bg-primary" : outputActive ? "bg-primary/20 text-primary" : "bg-white/10 text-white/40"
-                  }`}
+                  className={`flex size-8 items-center justify-center rounded-full ${outputDone ? "bg-primary" : outputActive ? "bg-primary/20 text-primary" : "bg-white/10 text-white/40"
+                    }`}
                 >
                   <span className="material-symbols-outlined text-lg">auto_stories</span>
                 </div>
