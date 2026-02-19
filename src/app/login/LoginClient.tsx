@@ -65,12 +65,29 @@ export default function LoginClient({ nextPath }: { nextPath: string }) {
         } = await supabase.auth.getSession();
 
         hasHydratedBrowserSession = !!hydratedSession?.access_token;
+
+        // CRITICAL: In Cloudflare Pages environment, setSession() may not persist cookies
+        // even when it succeeds. Verify cookies exist and force browser sign-in if not.
+        if (hasHydratedBrowserSession) {
+          // Wait for cookie storage to settle
+          await new Promise((resolve) => setTimeout(resolve, 100));
+
+          // Check if Supabase cookies were actually persisted
+          const cookiesExist = document.cookie.split(";").some((cookie) => {
+            const name = cookie.trim().split("=")[0];
+            return name?.startsWith("sb-");
+          });
+
+          if (!cookiesExist) {
+            // setSession() succeeded but cookies weren't persisted - force browser auth
+            hasHydratedBrowserSession = false;
+          }
+        }
       }
     }
 
     if (!hasHydratedBrowserSession) {
-      // Backward-compatible fallback if an older server response does not include
-      // session tokens or if setSession() did not persist in this runtime.
+      // Fallback: Use direct browser sign-in to ensure Supabase cookies are created
       const emailForBrowserSignIn = data?.resolved_email ?? identifier.trim();
 
       try {
@@ -81,6 +98,9 @@ export default function LoginClient({ nextPath }: { nextPath: string }) {
 
         if (!browserSignInError) {
           hasHydratedBrowserSession = true;
+
+          // Verify cookies were created after browser sign-in
+          await new Promise((resolve) => setTimeout(resolve, 100));
         }
       } catch {
         // Ignore client hydration sign-in errors; server login already succeeded.
