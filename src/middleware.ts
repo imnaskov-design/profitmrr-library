@@ -5,15 +5,6 @@ import { getPublicEnv } from "@/lib/env/public";
 import type { ResponseCookie } from "next/dist/compiled/@edge-runtime/cookies";
 
 const REMEMBER_COOKIE = "pmrr_remember";
-const LEGACY_SUPABASE_COOKIE_PATHS = [
-  "/api",
-  "/api/auth",
-  "/api/auth/login",
-  "/dashboard",
-  "/dashboard/ebooks",
-  "/dashboard/ebooks/create",
-] as const;
-const SUPABASE_REMEMBER_MAX_AGE_SECONDS = 400 * 24 * 60 * 60;
 
 function normalizeCookieOptionsForRemember(
   options: Partial<ResponseCookie> | undefined,
@@ -37,52 +28,6 @@ function normalizeCookieOptionsForRemember(
   delete nextOptions.expires;
   delete nextOptions.maxAge;
   return nextOptions;
-}
-
-function stabilizeSupabaseAuthCookies(input: {
-  request: NextRequest;
-  response: NextResponse;
-  remember: boolean;
-}) {
-  const secure = process.env.NODE_ENV === "production";
-
-  const supabaseCookies = input.request.cookies
-    .getAll()
-    .filter(({ name, value }) => name.startsWith("sb-") && value.length > 0);
-
-  if (!supabaseCookies.length) return;
-
-  const latestByName = new Map<string, string>();
-  supabaseCookies.forEach(({ name, value }) => {
-    latestByName.set(name, value);
-  });
-
-  latestByName.forEach((value, name) => {
-    // Ensure root-scoped Supabase cookies exist so API and dashboard routes
-    // resolve the same session identity.
-    input.response.cookies.set(name, value, {
-      path: "/",
-      sameSite: "lax",
-      secure,
-      ...(input.remember
-        ? {
-            maxAge: SUPABASE_REMEMBER_MAX_AGE_SECONDS,
-          }
-        : null),
-    });
-
-    // Remove legacy path-scoped copies that may shadow or override the root
-    // cookie on API requests, causing false Unauthorized responses.
-    LEGACY_SUPABASE_COOKIE_PATHS.forEach((path) => {
-      input.response.cookies.set(name, "", {
-        path,
-        expires: new Date(0),
-        maxAge: 0,
-        sameSite: "lax",
-        secure,
-      });
-    });
-  });
 }
 
 export async function middleware(request: NextRequest) {
@@ -133,12 +78,6 @@ export async function middleware(request: NextRequest) {
 
   // Refresh the session if needed.
   await supabase.auth.getUser();
-
-  stabilizeSupabaseAuthCookies({
-    request,
-    response,
-    remember,
-  });
 
   return response;
 }
