@@ -81,6 +81,38 @@ function summarizeCookieHeader(rawCookieHeader: string | null) {
   };
 }
 
+function createRlsClientWithAccessToken(accessToken: string) {
+  const env = getPublicEnv();
+
+  return createClient(env.NEXT_PUBLIC_SUPABASE_URL, env.NEXT_PUBLIC_SUPABASE_ANON_KEY, {
+    global: {
+      headers: {
+        authorization: `Bearer ${accessToken}`,
+      },
+    },
+    auth: {
+      persistSession: false,
+      autoRefreshToken: false,
+      detectSessionInUrl: false,
+    },
+  });
+}
+
+function decodeJwtUserId(accessToken: string) {
+  try {
+    const payloadPart = accessToken.split(".")[1];
+    if (!payloadPart) return null;
+
+    const payload = JSON.parse(Buffer.from(payloadPart, "base64url").toString("utf8")) as {
+      sub?: unknown;
+    };
+
+    return typeof payload.sub === "string" && payload.sub ? payload.sub : null;
+  } catch {
+    return null;
+  }
+}
+
 async function getCurrentUserId(req: Request) {
   const supabase = await createSupabaseServerClient();
   const cookieSummary = summarizeCookieHeader(req.headers.get("cookie"));
@@ -109,15 +141,74 @@ async function getCurrentUserId(req: Request) {
     hasCookieUser: !!cookieUser?.id,
   });
 
-  let resolvedUser = cookieUser;
+  let resolvedUserId = cookieUser?.id ?? null;
+  let resolvedUserMeta = (cookieUser?.user_metadata ?? {}) as Record<string, unknown>;
+  let resolvedAppMeta = (cookieUser?.app_metadata ?? {}) as Record<string, unknown>;
+  let authSource: "cookie" | "session_verified" | "session_unverified" | "session_decoded" | "bearer_verified" | "bearer_decoded" =
+    "cookie";
+  let resolvedAccessToken: string | null = null;
+
   let dbClient: Awaited<ReturnType<typeof createSupabaseServerClient>> | ReturnType<typeof createClient> = supabase;
 
-  if (!resolvedUser?.id) {
+  if (!resolvedUserId) {
+    const {
+      data: { session },
+      error: sessionError,
+    } = await supabase.auth.getSession();
+
+    if (sessionError) {
+      logEbookJobsAuth("cookie_session_error", {
+        message: sessionError.message,
+      });
+    }
+
+    if (session?.access_token) {
+      resolvedAccessToken = session.access_token;
+
+      const { data, error } = await supabase.auth.getUser(session.access_token);
+
+      if (error) {
+        logEbookJobsAuth("session_token_user_error", {
+          message: error.message,
+        });
+      }
+
+      if (!error && data.user?.id) {
+        resolvedUserId = data.user.id;
+        resolvedUserMeta = (data.user.user_metadata ?? {}) as Record<string, unknown>;
+        resolvedAppMeta = (data.user.app_metadata ?? {}) as Record<string, unknown>;
+        authSource = "session_verified";
+      } else if (session.user?.id) {
+        resolvedUserId = session.user.id;
+        resolvedUserMeta = (session.user.user_metadata ?? {}) as Record<string, unknown>;
+        resolvedAppMeta = (session.user.app_metadata ?? {}) as Record<string, unknown>;
+        authSource = "session_unverified";
+
+        logEbookJobsAuth("session_user_fallback", {
+          userId: session.user.id,
+        });
+      } else {
+        const decodedUserId = decodeJwtUserId(session.access_token);
+        if (decodedUserId) {
+          resolvedUserId = decodedUserId;
+          authSource = "session_decoded";
+
+          logEbookJobsAuth("session_decoded_fallback", {
+            userId: decodedUserId,
+          });
+        }
+      }
+    }
+  }
+
+  if (!resolvedUserId) {
     const authHeader = req.headers.get("authorization") ?? "";
     const bearerMatch = authHeader.match(/^Bearer\s+(.+)$/i);
     const accessToken = bearerMatch?.[1]?.trim();
 
     if (accessToken) {
+      resolvedAccessToken = accessToken;
+
       const { data, error } = await supabase.auth.getUser(accessToken);
 
       if (error) {
@@ -127,26 +218,29 @@ async function getCurrentUserId(req: Request) {
       }
 
       if (!error && data.user?.id) {
-        resolvedUser = data.user;
+        resolvedUserId = data.user.id;
+        resolvedUserMeta = (data.user.user_metadata ?? {}) as Record<string, unknown>;
+        resolvedAppMeta = (data.user.app_metadata ?? {}) as Record<string, unknown>;
+        authSource = "bearer_verified";
+      } else {
+        const decodedUserId = decodeJwtUserId(accessToken);
+        if (decodedUserId) {
+          resolvedUserId = decodedUserId;
+          authSource = "bearer_decoded";
 
-        const env = getPublicEnv();
-        dbClient = createClient(env.NEXT_PUBLIC_SUPABASE_URL, env.NEXT_PUBLIC_SUPABASE_ANON_KEY, {
-          global: {
-            headers: {
-              authorization: `Bearer ${accessToken}`,
-            },
-          },
-          auth: {
-            persistSession: false,
-            autoRefreshToken: false,
-            detectSessionInUrl: false,
-          },
-        });
+          logEbookJobsAuth("bearer_decoded_fallback", {
+            userId: decodedUserId,
+          });
+        }
       }
     }
   }
 
-  if (!resolvedUser?.id) {
+  if (resolvedAccessToken) {
+    dbClient = createRlsClientWithAccessToken(resolvedAccessToken);
+  }
+
+  if (!resolvedUserId) {
     logEbookJobsAuth("unauthorized", {
       hasCookieHeader,
       hasAuthorizationHeader,
@@ -157,17 +251,15 @@ async function getCurrentUserId(req: Request) {
   }
 
   logEbookJobsAuth("authorized", {
-    userId: resolvedUser.id,
-    via: cookieUser?.id ? "cookie" : "bearer",
+    userId: resolvedUserId,
+    via: authSource,
   });
 
-  const userMeta = (resolvedUser.user_metadata ?? {}) as Record<string, unknown>;
-  const appMeta = (resolvedUser.app_metadata ?? {}) as Record<string, unknown>;
-  const planTier = normalizePlanTier(userMeta.plan_tier ?? appMeta.plan_tier);
+  const planTier = normalizePlanTier(resolvedUserMeta.plan_tier ?? resolvedAppMeta.plan_tier);
 
   return {
     db: dbClient,
-    userId: resolvedUser.id,
+    userId: resolvedUserId,
     planTier,
   };
 }
