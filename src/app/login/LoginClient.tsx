@@ -51,21 +51,37 @@ export default function LoginClient({ nextPath }: { nextPath: string }) {
     // but no browser Supabase session is available for authenticated API calls.
     const sessionFromServer = data?.session;
 
+    let hasHydratedBrowserSession = false;
+
     if (sessionFromServer?.access_token && sessionFromServer?.refresh_token) {
-      await supabase.auth.setSession({
+      const { error: setSessionError } = await supabase.auth.setSession({
         access_token: sessionFromServer.access_token,
         refresh_token: sessionFromServer.refresh_token,
       });
-    } else {
+
+      if (!setSessionError) {
+        const {
+          data: { session: hydratedSession },
+        } = await supabase.auth.getSession();
+
+        hasHydratedBrowserSession = !!hydratedSession?.access_token;
+      }
+    }
+
+    if (!hasHydratedBrowserSession) {
       // Backward-compatible fallback if an older server response does not include
-      // session tokens.
+      // session tokens or if setSession() did not persist in this runtime.
       const emailForBrowserSignIn = data?.resolved_email ?? identifier.trim();
 
       try {
-        await supabase.auth.signInWithPassword({
+        const { error: browserSignInError } = await supabase.auth.signInWithPassword({
           email: emailForBrowserSignIn,
           password,
         });
+
+        if (!browserSignInError) {
+          hasHydratedBrowserSession = true;
+        }
       } catch {
         // Ignore client hydration sign-in errors; server login already succeeded.
       }

@@ -10,16 +10,20 @@ function normalizeCookieOptionsForRemember(
   options: Partial<ResponseCookie> | undefined,
   remember: boolean,
 ): Partial<ResponseCookie> | undefined {
-  if (remember) return options;
-  if (!options) return options;
+  const nextOptions: Partial<ResponseCookie> = {
+    ...(options ?? {}),
+    // Ensure auth cookies are scoped to the full site, including /api endpoints.
+    path: options?.path ?? "/",
+  };
+
+  if (remember) return nextOptions;
 
   // Keep delete cookies working.
   // Supabase sets removal cookies with maxAge: 0.
-  if (typeof options.maxAge === "number" && options.maxAge === 0) {
-    return options;
+  if (typeof nextOptions.maxAge === "number" && nextOptions.maxAge === 0) {
+    return nextOptions;
   }
 
-  const nextOptions = { ...options };
   delete nextOptions.expires;
   delete nextOptions.maxAge;
   return nextOptions;
