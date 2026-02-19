@@ -169,7 +169,7 @@ export default async function AccountBillingPage() {
                 </select>
               </div>
               <button className="mt-2 w-full rounded-lg border border-border-dark bg-white/5 py-3 text-sm font-bold text-white transition-all hover:bg-white/10" type="button">
-                Update Profile
+                Update Profile (coming soon)
               </button>
             </form>
           </div>

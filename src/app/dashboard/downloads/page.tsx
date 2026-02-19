@@ -68,10 +68,13 @@ export default async function MyDownloadsPage() {
               <span className="material-symbols-outlined text-sm">refresh</span>
               Sync List
             </button>
-            <button className="flex items-center gap-2 rounded-lg bg-primary px-4 py-2 text-sm font-bold text-background-dark shadow-lg shadow-primary/10 transition-transform hover:scale-[1.02]">
+            <Link
+              href="/dashboard/downloads/redeem"
+              className="flex items-center gap-2 rounded-lg bg-primary px-4 py-2 text-sm font-bold text-background-dark shadow-lg shadow-primary/10 transition-transform hover:scale-[1.02]"
+            >
               <span className="material-symbols-outlined text-sm">add_circle</span>
               Redeem Product
-            </button>
+            </Link>
           </div>
         </div>
 

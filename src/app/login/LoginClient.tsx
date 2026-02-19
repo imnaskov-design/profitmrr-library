@@ -5,10 +5,6 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 
 import { createSupabaseBrowserClient } from "@/lib/supabase/browser";
-import { GlassCard } from "@/components/ui/GlassCard";
-import { GlassButton } from "@/components/ui/GlassButton";
-import { AnimatedInput } from "@/components/ui/AnimatedInput";
-
 export default function LoginClient({ nextPath }: { nextPath: string }) {
   const router = useRouter();
 
@@ -48,103 +44,147 @@ export default function LoginClient({ nextPath }: { nextPath: string }) {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-zinc-50 via-white to-zinc-50">
-      {/* Animated background */}
-      <div className="fixed inset-0 -z-10 overflow-hidden">
-        <div className="absolute -top-[40%] -left-[20%] h-[80%] w-[60%] rounded-full bg-indigo-100/50 blur-3xl animate-pulse" />
-        <div className="absolute top-[20%] -right-[10%] h-[50%] w-[40%] rounded-full bg-violet-100/50 blur-3xl animate-pulse" style={{ animationDelay: "1s" }} />
-      </div>
+    <div className="relative flex min-h-screen flex-col bg-background-dark font-display">
+      <div className="pointer-events-none fixed inset-0 -z-10 bg-[radial-gradient(circle_at_center,rgba(255,193,7,0.08)_0%,transparent_60%)]" />
 
-      <div className="mx-auto flex w-full max-w-md flex-col gap-6 px-4 py-16">
-        {/* Logo */}
-        <div className="text-center">
-          <Link href="/" className="inline-flex items-center gap-2 text-xl font-bold">
-            <span className="bg-gradient-to-r from-indigo-600 to-violet-600 bg-clip-text text-transparent">
-              ProfitMRR
-            </span>
-            <span className="text-zinc-400">Library</span>
-          </Link>
+      <nav className="relative z-10 w-full">
+        <div className="mx-auto flex h-28 max-w-7xl items-center justify-center px-6">
+          <div className="flex items-center gap-3">
+            <div className="rounded-lg bg-primary p-1.5">
+              <span className="material-symbols-outlined block text-xl leading-none font-bold text-background-dark">
+                account_balance_wallet
+              </span>
+            </div>
+            <h1 className="text-xl font-black tracking-tighter uppercase text-white">
+              Profit<span className="text-primary">MRR</span>
+            </h1>
+          </div>
         </div>
+      </nav>
 
-        <GlassCard padding="lg" className="relative overflow-hidden">
-          {/* Decorative gradient */}
-          <div className="absolute -top-20 -left-20 h-40 w-40 rounded-full bg-indigo-200/30 blur-3xl" />
-          <div className="absolute -bottom-20 -right-20 h-40 w-40 rounded-full bg-violet-200/30 blur-3xl" />
-          
-          <div className="relative">
-            <div className="mb-6">
-              <h1 className="text-2xl font-bold tracking-tight text-zinc-900">Welcome back</h1>
-              <p className="mt-1 text-sm text-zinc-500">
-                Log in to access your member dashboard.
-              </p>
+      <main className="relative z-10 flex flex-1 items-center justify-center px-6 py-12">
+        <div className="relative w-full max-w-[560px]">
+          <div className="absolute -inset-10 rounded-full bg-primary/10 opacity-40 blur-[100px]" />
+
+          <div className="relative rounded-[2.5rem] border border-white/10 bg-[#121212]/40 p-8 shadow-[0_25px_50px_-12px_rgba(0,0,0,0.7)] backdrop-blur-2xl md:p-12">
+            <div className="mb-10 text-center">
+              <h2 className="whitespace-nowrap text-2xl font-bold tracking-tight text-white">
+                Log in to access your Reseller Tools
+              </h2>
             </div>
 
-            <form onSubmit={onSubmit} className="flex flex-col gap-4">
-              <AnimatedInput
-                label="Username or email"
-                type="text"
-                required
-                autoComplete="username"
-                value={identifier}
-                onChange={(e) => setIdentifier(e.target.value)}
-                icon={
-                  <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-                  </svg>
-                }
-              />
+            <form onSubmit={onSubmit} className="space-y-6">
+              <div className="space-y-2">
+                <label className="ml-1 text-[10px] font-bold uppercase tracking-[0.2em] text-white/40">
+                  Username or email
+                </label>
+                <div className="group relative">
+                  <span className="material-symbols-outlined absolute left-4 top-1/2 -translate-y-1/2 text-xl text-white/30 transition-colors group-focus-within:text-primary">
+                    person
+                  </span>
+                  <input
+                    type="text"
+                    required
+                    autoComplete="username"
+                    value={identifier}
+                    onChange={(e) => setIdentifier(e.target.value)}
+                    placeholder="Enter your username"
+                    className="h-12 w-full rounded-xl border border-white/15 bg-black/30 py-3.5 pl-11 pr-4 text-sm text-white placeholder:text-white/20 outline-none transition-all focus:border-primary focus:ring-1 focus:ring-primary"
+                  />
+                </div>
+              </div>
 
-              <AnimatedInput
-                label="Password"
-                type="password"
-                required
-                autoComplete="current-password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                icon={
-                  <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 10-10V002 2zm7a4 4 0 00-8 0v4h8z" />
-                  </svg>
-                }
-              />
+              <div className="space-y-2">
+                <label className="ml-1 text-[10px] font-bold uppercase tracking-[0.2em] text-white/40">
+                  Password
+                </label>
+                <div className="group relative">
+                  <span className="material-symbols-outlined absolute left-4 top-1/2 -translate-y-1/2 text-xl text-white/30 transition-colors group-focus-within:text-primary">
+                    lock
+                  </span>
+                  <input
+                    type="password"
+                    required
+                    autoComplete="current-password"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    placeholder="••••••••"
+                    className="h-12 w-full rounded-xl border border-white/15 bg-black/30 py-3.5 pl-11 pr-4 text-sm text-white placeholder:text-white/20 outline-none transition-all focus:border-primary focus:ring-1 focus:ring-primary"
+                  />
+                </div>
+              </div>
 
               {error ? (
-                <div className="rounded-xl border border-red-200/50 bg-red-50/80 px-3 py-2 text-sm text-red-600 backdrop-blur-sm">
+                <div className="rounded-xl border border-red-500/40 bg-red-500/10 px-3 py-2 text-sm text-red-300">
                   {error}
                 </div>
               ) : null}
 
-              <label className="flex items-center gap-2 text-sm text-zinc-600">
-                <input
-                  type="checkbox"
-                  checked={remember}
-                  onChange={(e) => setRemember(e.target.checked)}
-                  className="h-4 w-4 rounded border-zinc-300 text-indigo-600 focus:ring-indigo-500/20"
-                />
-                Remember me
-              </label>
+              <div className="flex items-center justify-between px-1">
+                <label className="group flex cursor-pointer items-center gap-2.5">
+                  <input
+                    type="checkbox"
+                    checked={remember}
+                    onChange={(e) => setRemember(e.target.checked)}
+                    className="h-4 w-4 rounded border-white/20 bg-black/40 text-primary focus:ring-primary focus:ring-offset-background-dark"
+                  />
+                  <span className="text-xs font-semibold text-white/60 transition-colors group-hover:text-white">
+                    Remember me
+                  </span>
+                </label>
 
-              <GlassButton
+                <Link
+                  href="/reset-password"
+                  className="text-xs font-bold text-primary transition-colors hover:text-white"
+                >
+                  Forgot password?
+                </Link>
+              </div>
+
+              <button
                 type="submit"
-                loading={loading}
-                variant="primary"
-                size="lg"
-                className="w-full"
+                disabled={loading}
+                className="mt-4 w-full rounded-xl bg-primary py-4 text-sm font-black uppercase tracking-widest text-background-dark transition-all hover:bg-[#ffd54f] active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-60"
               >
-                Log in
-              </GlassButton>
+                {loading ? "Logging in..." : "Log in"}
+              </button>
             </form>
-          </div>
-        </GlassCard>
 
-        <p className="text-center text-sm text-zinc-500">
-          Don't have an account?{" "}
-          <Link className="font-semibold text-indigo-600 transition-colors hover:text-indigo-700" href="/register">
-            Create one
-          </Link>
-          .
+            <div className="mt-10 text-center">
+              <p className="text-xs font-medium text-white/40">
+                Don&apos;t have an account?
+                <span className="ml-1 font-bold text-primary">Use your private invite link from email</span>
+                {" "}
+                after payment.
+                <Link className="ml-1 font-bold text-primary transition-colors hover:text-white" href="/">
+                  View plans
+                </Link>
+              </p>
+            </div>
+          </div>
+
+          <div className="mt-10 flex flex-wrap items-center justify-center gap-8 opacity-30">
+            <div className="flex items-center gap-2">
+              <span className="material-symbols-outlined text-sm">verified_user</span>
+              <span className="text-[9px] font-black uppercase tracking-widest">SSL Encrypted</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <span className="material-symbols-outlined text-sm">shield</span>
+              <span className="text-[9px] font-black uppercase tracking-widest">Secure Access</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <span className="material-symbols-outlined text-sm">gavel</span>
+              <span className="text-[9px] font-black uppercase tracking-widest">Certified Platform</span>
+            </div>
+          </div>
+        </div>
+      </main>
+
+      <footer className="relative z-10 w-full px-6 py-10 text-center">
+        <p className="text-[9px] font-bold uppercase tracking-[0.4em] text-white/20">
+          © 2024 ProfitMRR Infrastructure. Digital Wealth Engineered.
         </p>
-      </div>
+      </footer>
     </div>
   );
 }

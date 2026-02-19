@@ -38,6 +38,8 @@ Required:
 Optional:
 - `EMAIL_REPLY_TO`
 - `DOWNLOADS_PER_DAY_LIMIT` (default 50)
+- `EBOOK_JOB_IDEMPOTENCY_TTL_HOURS` (default 72)
+- `EBOOK_INTERNAL_JOB_SECRET` (optional in local dev; recommended in production for internal generation processing route)
 
 Cloudflare compatibility aliases (optional):
 - `SUPABASE_URL`, `CF_SUPABASE_URL`, `PUBLIC_SUPABASE_URL`

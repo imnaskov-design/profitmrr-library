@@ -1,5 +1,24 @@
 export type SubscriptionStatus = "active" | "cancelled" | "expired" | "inactive";
 
+export type EbookStatus = "draft" | "generating" | "ready" | "failed" | "archived";
+export type EbookJobStatus = "queued" | "running" | "succeeded" | "failed" | "cancelled";
+
+export function normalizeEbookStatus(value: unknown): EbookStatus {
+  if (value === "draft" || value === "generating" || value === "ready" || value === "failed" || value === "archived") {
+    return value;
+  }
+
+  return "draft";
+}
+
+export function normalizeEbookJobStatus(value: unknown): EbookJobStatus {
+  if (value === "queued" || value === "running" || value === "succeeded" || value === "failed" || value === "cancelled") {
+    return value;
+  }
+
+  return "queued";
+}
+
 export function normalizeSubscriptionStatus(value: unknown): SubscriptionStatus {
   if (
     value === "active" ||

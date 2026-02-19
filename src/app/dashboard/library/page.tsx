@@ -27,19 +27,16 @@ function asSingle(value: string | string[] | undefined) {
   return typeof value === "string" ? value : "";
 }
 
-function isUuid(value: string) {
-  return /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(value);
-}
-
 export default async function FullLibraryPage({
   searchParams,
 }: {
-  searchParams?: SearchParams;
+  searchParams?: Promise<SearchParams>;
 }) {
-  const q = asSingle(searchParams?.q).trim();
-  const category = asSingle(searchParams?.category) || "All";
-  const sort = asSingle(searchParams?.sort) || "popular";
-  const preview = asSingle(searchParams?.preview);
+  const resolvedSearchParams = (await searchParams) ?? {};
+
+  const q = asSingle(resolvedSearchParams.q).trim();
+  const category = asSingle(resolvedSearchParams.category) || "All";
+  const sort = asSingle(resolvedSearchParams.sort) || "popular";
 
   const supabase = await createSupabaseServerClient();
   const {
@@ -85,47 +82,6 @@ export default async function FullLibraryPage({
     imageUrl: previewImages[index % previewImages.length],
     badge: item.is_new ? "NEW" : index % 2 === 0 ? "MRR" : "PLR",
   }));
-
-  const previewId = isUuid(preview) ? preview : "";
-  const previewFromList = previewId ? items.find((item) => item.id === previewId) : undefined;
-
-  const { data: previewFromDb } = previewId
-    ? await supabase
-        .from("library_items")
-        .select("id, title, category, description, file_size_mb")
-        .eq("id", previewId)
-        .maybeSingle()
-    : { data: null };
-
-  const previewItem = previewFromList
-    ? {
-        ...previewFromList,
-        description:
-          previewFromList.description ??
-          "Dominate your niche with this high-fidelity asset pack. Everything needed to publish quickly and launch professionally.",
-      }
-    : previewFromDb
-      ? {
-          ...previewFromDb,
-          imageUrl: previewImages[0],
-          badge: "MRR",
-          is_new: false,
-          tags: [],
-        }
-      : null;
-
-  const baseParams = new URLSearchParams();
-  if (q) baseParams.set("q", q);
-  if (category && category !== "All") baseParams.set("category", category);
-  if (sort && sort !== "popular") baseParams.set("sort", sort);
-
-  const baseHref = `/dashboard/library${baseParams.toString() ? `?${baseParams.toString()}` : ""}`;
-
-  const buildPreviewHref = (id: string) => {
-    const params = new URLSearchParams(baseParams);
-    params.set("preview", id);
-    return `/dashboard/library?${params.toString()}`;
-  };
 
   const totalShown = items.length;
   const usedSafe = used ?? 0;
@@ -297,7 +253,7 @@ export default async function FullLibraryPage({
                         DOWNLOAD
                       </a>
                       <Link
-                        href={buildPreviewHref(item.id)}
+                        href={`/dashboard/library/${item.id}`}
                         className="flex items-center justify-center rounded-xl border border-white/10 bg-white/5 py-2.5 text-xs font-bold text-white transition-all hover:bg-white/10"
                       >
                         PREVIEW
@@ -314,86 +270,6 @@ export default async function FullLibraryPage({
           </div>
         </div>
       </div>
-
-      {previewItem ? (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-4 backdrop-blur-md md:p-12">
-          <Link href={baseHref} className="absolute right-8 top-8 z-[60] text-slate-400 transition-colors hover:text-white">
-            <span className="material-symbols-outlined text-3xl">close</span>
-          </Link>
-
-          <div className="relative flex max-h-[90vh] w-full max-w-5xl flex-col overflow-hidden rounded-[2rem] border border-primary/20 bg-card-dark modal-glow md:flex-row">
-            <div className="flex w-full flex-col items-center justify-center gap-6 border-b border-white/5 bg-gradient-to-br from-slate-900 to-black p-8 md:w-1/2 md:border-b-0 md:border-r">
-              <div className="group/main relative aspect-[4/5] w-full">
-                <div className="absolute inset-0 rounded-full bg-primary/5 blur-3xl"></div>
-                <img
-                  alt={previewItem.title}
-                  className="relative z-10 h-full w-full rounded-lg object-contain drop-shadow-[0_25px_50px_rgba(0,0,0,0.5)]"
-                  src={previewItem.imageUrl}
-                />
-                <button className="absolute bottom-6 left-1/2 z-20 flex -translate-x-1/2 items-center gap-2 rounded-full border border-white/20 bg-white/10 px-6 py-2.5 text-xs font-bold text-white opacity-0 backdrop-blur-md transition-all group-hover/main:opacity-100 hover:bg-white/20">
-                  <span className="material-symbols-outlined text-sm">visibility</span>
-                  Preview Inside
-                </button>
-              </div>
-            </div>
-
-            <div className="flex w-full flex-col overflow-y-auto p-8 custom-scrollbar md:w-1/2 md:p-12">
-              <div className="space-y-4">
-                <div className="flex gap-2">
-                  <span className="rounded-md bg-primary px-3 py-1 text-[10px] font-black tracking-wider text-background-dark">MRR INCLUDED</span>
-                  <span className="flex items-center gap-1 rounded-md border border-green-500/20 bg-green-500/10 px-3 py-1 text-[10px] font-black tracking-wider text-green-500">
-                    <span className="material-symbols-outlined text-[12px]">verified</span>
-                    ETSY PROVEN
-                  </span>
-                </div>
-                <h2 className="text-3xl font-extrabold leading-tight text-white md:text-4xl">{previewItem.title}</h2>
-              </div>
-
-              <div className="my-8 grid grid-cols-2 gap-4">
-                <div className="rounded-2xl border border-white/10 bg-white/5 p-4">
-                  <p className="mb-1 text-[10px] font-bold uppercase text-slate-500">Category</p>
-                  <p className="text-xl font-bold text-primary">{previewItem.category}</p>
-                </div>
-                <div className="rounded-2xl border border-white/10 bg-white/5 p-4">
-                  <p className="mb-1 text-[10px] font-bold uppercase text-slate-500">File Size</p>
-                  <p className="text-xl font-bold text-primary">{previewItem.file_size_mb ? `${previewItem.file_size_mb} MB` : "Included"}</p>
-                </div>
-              </div>
-
-              <div className="space-y-4">
-                <p className="leading-relaxed text-slate-300">
-                  {previewItem.description ??
-                    "Dominate your niche with this high-fidelity product. Includes commercial rights and one-click access for immediate launch."}
-                </p>
-                <ul className="space-y-3">
-                  <li className="flex items-center gap-3 text-sm font-semibold text-slate-200"><span className="material-symbols-outlined text-lg text-primary">check_circle</span>Full Resell Rights (MRR)</li>
-                  <li className="flex items-center gap-3 text-sm font-semibold text-slate-200"><span className="material-symbols-outlined text-lg text-primary">check_circle</span>Commercial License Included</li>
-                  <li className="flex items-center gap-3 text-sm font-semibold text-slate-200"><span className="material-symbols-outlined text-lg text-primary">check_circle</span>Instant One-Click Download</li>
-                </ul>
-              </div>
-
-              <div className="mt-auto flex flex-col gap-3 pt-10">
-                <a
-                  href={`/api/download?id=${previewItem.id}`}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="flex w-full items-center justify-center gap-2 rounded-xl bg-primary py-4 text-sm font-black text-background-dark transition-all hover:scale-[1.01] hover:brightness-110 active:scale-95"
-                >
-                  <span className="material-symbols-outlined font-bold">download</span>
-                  DOWNLOAD NOW
-                </a>
-                <Link
-                  href="/dashboard/downloads"
-                  className="flex w-full items-center justify-center gap-2 rounded-xl border border-white/10 bg-white/5 py-4 text-sm font-bold text-white transition-all hover:bg-white/10"
-                >
-                  <span className="material-symbols-outlined text-lg">add_to_drive</span>
-                  Add to My Downloads
-                </Link>
-              </div>
-            </div>
-          </div>
-        </div>
-      ) : null}
     </div>
   );
 }

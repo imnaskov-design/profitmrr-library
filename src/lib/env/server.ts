@@ -7,6 +7,7 @@ import { readEnvString } from "@/lib/env/read";
 const coreServerEnvSchema = z.object({
   APP_BASE_URL: z.string().url(),
   DOWNLOADS_PER_DAY_LIMIT: z.coerce.number().int().min(1).max(500).default(50),
+  EBOOK_JOB_IDEMPOTENCY_TTL_HOURS: z.coerce.number().int().min(1).max(24 * 14).default(72),
 });
 
 const supabaseAdminEnvSchema = z.object({
@@ -32,11 +33,16 @@ const emailEnvSchema = z.object({
   EMAIL_REPLY_TO: z.string().min(1).optional(),
 });
 
+const registerInviteEnvSchema = z.object({
+  REGISTER_INVITE_TOKEN_TTL_HOURS: z.coerce.number().int().min(1).max(24 * 30),
+});
+
 let coreCached: z.infer<typeof coreServerEnvSchema> | null = null;
 let supabaseAdminCached: z.infer<typeof supabaseAdminEnvSchema> | null = null;
 let lemonCached: z.infer<typeof lemonSqueezyEnvSchema> | null = null;
 let r2Cached: z.infer<typeof r2EnvSchema> | null = null;
 let emailCached: z.infer<typeof emailEnvSchema> | null = null;
+let registerInviteCached: z.infer<typeof registerInviteEnvSchema> | null = null;
 
 export function getServerEnv() {
   if (coreCached) return coreCached;
@@ -44,6 +50,7 @@ export function getServerEnv() {
   coreCached = coreServerEnvSchema.parse({
     APP_BASE_URL: readEnvString("APP_BASE_URL"),
     DOWNLOADS_PER_DAY_LIMIT: readEnvString("DOWNLOADS_PER_DAY_LIMIT"),
+    EBOOK_JOB_IDEMPOTENCY_TTL_HOURS: readEnvString("EBOOK_JOB_IDEMPOTENCY_TTL_HOURS"),
   });
 
   return coreCached;
@@ -100,5 +107,15 @@ export function getEmailEnv() {
   });
 
   return emailCached;
+}
+
+export function getRegisterInviteEnv() {
+  if (registerInviteCached) return registerInviteCached;
+
+  registerInviteCached = registerInviteEnvSchema.parse({
+    REGISTER_INVITE_TOKEN_TTL_HOURS: readEnvString("REGISTER_INVITE_TOKEN_TTL_HOURS"),
+  });
+
+  return registerInviteCached;
 }
 

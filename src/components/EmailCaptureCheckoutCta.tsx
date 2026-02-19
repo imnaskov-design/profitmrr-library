@@ -212,10 +212,13 @@ function EmailCaptureModal({
             </p>
             <p className="text-center text-sm text-white/60">
               Already purchased?{" "}
-              <Link href="/register" className="font-bold text-primary hover:underline">
-                Create your account
+              <span className="font-bold text-primary">Use the private link sent to your email</span>
+              {" "}
+              to create your account.
+              <Link href="/login" className="ml-1 font-bold text-primary hover:underline">
+                Log in
               </Link>{" "}
-              using the same email.
+              if you already registered.
             </p>
           </div>
         </div>
