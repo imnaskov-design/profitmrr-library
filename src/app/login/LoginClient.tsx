@@ -2,9 +2,42 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useState, useCallback } from "react";
 
 import { createSupabaseBrowserClient } from "@/lib/supabase/browser";
+
+const MAX_COOKIE_VERIFY_ATTEMPTS = 5;
+const COOKIE_VERIFY_DELAY_MS = 200;
+
+/**
+ * Verifies that Supabase auth cookies exist in the browser.
+ * Returns true if any sb-* cookie is found.
+ */
+function verifySupabaseCookiesExist(): boolean {
+  return document.cookie.split(";").some((cookie) => {
+    const name = cookie.trim().split("=")[0];
+    return name?.startsWith("sb-");
+  });
+}
+
+/**
+ * Waits for Supabase cookies to appear in the browser with retry logic.
+ * Cloudflare Pages can have delays in cookie persistence.
+ */
+async function waitForCookies(maxAttempts = MAX_COOKIE_VERIFY_ATTEMPTS): Promise<boolean> {
+  for (let attempt = 0; attempt < maxAttempts; attempt++) {
+    await new Promise((resolve) => setTimeout(resolve, COOKIE_VERIFY_DELAY_MS));
+    
+    if (verifySupabaseCookiesExist()) {
+      console.info("[LoginClient] Cookies verified on attempt", attempt + 1);
+      return true;
+    }
+  }
+  
+  console.warn("[LoginClient] Cookies not found after", maxAttempts, "attempts");
+  return false;
+}
+
 export default function LoginClient({ nextPath }: { nextPath: string }) {
   const router = useRouter();
 
@@ -14,103 +47,126 @@ export default function LoginClient({ nextPath }: { nextPath: string }) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  const resolveEmail = useCallback(async (inputIdentifier: string): Promise<string | null> => {
+    // First, try server-side username resolution
+    const res = await fetch("/api/auth/login", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ identifier: inputIdentifier, password, remember }),
+    });
+
+    const data = (await res.json().catch(() => null)) as {
+      error?: string;
+      resolved_email?: string;
+      ok?: boolean;
+    } | null;
+
+    if (!res.ok) {
+      return null; // Will trigger error handling in caller
+    }
+
+    // Server resolved the email (handles username -> email mapping)
+    return data?.resolved_email ?? inputIdentifier.trim();
+  }, [password, remember]);
+
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
     setError(null);
     setLoading(true);
 
-    // Use a server route to support username-or-email login without loosening RLS.
-    const res = await fetch("/api/auth/login", {
-      method: "POST",
-      headers: { "content-type": "application/json" },
-      body: JSON.stringify({ identifier, password, remember }),
-    });
-
-    const data = (await res.json().catch(() => null)) as
-      | {
-          error?: string;
-          resolved_email?: string;
-          session?: {
-            access_token?: string;
-            refresh_token?: string;
-          };
-        }
-      | null;
-
-    if (!res.ok) {
+    const trimmedIdentifier = identifier.trim();
+    
+    if (!trimmedIdentifier || !password) {
+      setError("Please enter your username/email and password.");
       setLoading(false);
-      setError(data?.error ?? "Unable to log in.");
       return;
     }
 
-    // Ensure the browser client exists so subsequent navigation has a hydrated client.
-    const supabase = await createSupabaseBrowserClient();
+    try {
+      // Step 1: Get the Supabase browser client
+      const supabase = await createSupabaseBrowserClient();
 
-    // Deterministically hydrate browser auth state from server login.
-    // This prevents edge cases where only app cookies exist (pmrr_remember)
-    // but no browser Supabase session is available for authenticated API calls.
-    const sessionFromServer = data?.session;
+      // Step 2: Resolve email via server (handles username lookup)
+      // This also validates credentials on the server
+      const resolvedEmail = await resolveEmail(trimmedIdentifier);
+      
+      if (!resolvedEmail) {
+        setError("Invalid credentials.");
+        setLoading(false);
+        return;
+      }
 
-    let hasHydratedBrowserSession = false;
-
-    if (sessionFromServer?.access_token && sessionFromServer?.refresh_token) {
-      const { error: setSessionError } = await supabase.auth.setSession({
-        access_token: sessionFromServer.access_token,
-        refresh_token: sessionFromServer.refresh_token,
+      // Step 3: ALWAYS use browser signInWithPassword to ensure cookies are created
+      // This is the KEY fix - setSession() doesn't persist cookies reliably on Cloudflare Pages
+      console.info("[LoginClient] Starting browser authentication for:", resolvedEmail);
+      
+      const { error: signInError } = await supabase.auth.signInWithPassword({
+        email: resolvedEmail,
+        password,
       });
 
-      if (!setSessionError) {
-        const {
-          data: { session: hydratedSession },
-        } = await supabase.auth.getSession();
+      if (signInError) {
+        console.error("[LoginClient] Browser sign-in failed:", signInError.message);
+        setError("Invalid credentials.");
+        setLoading(false);
+        return;
+      }
 
-        hasHydratedBrowserSession = !!hydratedSession?.access_token;
+      // Step 4: Verify cookies were created with retry logic
+      console.info("[LoginClient] Sign-in succeeded, verifying cookies...");
+      const cookiesCreated = await waitForCookies();
 
-        // CRITICAL: In Cloudflare Pages environment, setSession() may not persist cookies
-        // even when it succeeds. Verify cookies exist and force browser sign-in if not.
-        if (hasHydratedBrowserSession) {
-          // Wait for cookie storage to settle
-          await new Promise((resolve) => setTimeout(resolve, 100));
+      if (!cookiesCreated) {
+        // Last resort: Try to force cookie creation by refreshing the session
+        console.warn("[LoginClient] Cookies not found, attempting session refresh...");
+        
+        const { error: refreshError } = await supabase.auth.refreshSession();
+        
+        if (refreshError) {
+          console.error("[LoginClient] Session refresh failed:", refreshError.message);
+        }
 
-          // Check if Supabase cookies were actually persisted
-          const cookiesExist = document.cookie.split(";").some((cookie) => {
-            const name = cookie.trim().split("=")[0];
-            return name?.startsWith("sb-");
-          });
+        // Final verification
+        await new Promise((resolve) => setTimeout(resolve, 300));
+        const finalCheck = verifySupabaseCookiesExist();
 
-          if (!cookiesExist) {
-            // setSession() succeeded but cookies weren't persisted - force browser auth
-            hasHydratedBrowserSession = false;
-          }
+        if (!finalCheck) {
+          console.error("[LoginClient] CRITICAL: Cookies still not present after all attempts");
+          // Still proceed - the server login was successful, and the middleware
+          // might be able to handle auth via server-side cookies
         }
       }
-    }
 
-    if (!hasHydratedBrowserSession) {
-      // Fallback: Use direct browser sign-in to ensure Supabase cookies are created
-      const emailForBrowserSignIn = data?.resolved_email ?? identifier.trim();
+      // Step 5: Verify we have a valid session
+      const {
+        data: { session },
+      } = await supabase.auth.getSession();
 
-      try {
-        const { error: browserSignInError } = await supabase.auth.signInWithPassword({
-          email: emailForBrowserSignIn,
-          password,
-        });
-
-        if (!browserSignInError) {
-          hasHydratedBrowserSession = true;
-
-          // Verify cookies were created after browser sign-in
-          await new Promise((resolve) => setTimeout(resolve, 100));
-        }
-      } catch {
-        // Ignore client hydration sign-in errors; server login already succeeded.
+      if (!session?.access_token) {
+        console.warn("[LoginClient] No session token found, but proceeding with redirect");
+      } else {
+        console.info("[LoginClient] Session verified, access token present");
       }
+
+      // Step 6: Set remember-me preference cookie
+      // This is handled by the server route, but we can also set it client-side
+      if (!remember) {
+        // For "don't remember me", the server already handled session-only cookies
+        // No additional action needed
+      }
+
+      console.info("[LoginClient] Authentication complete, redirecting to:", nextPath);
+      setLoading(false);
+
+      // Use replace to avoid back-button issues
+      router.replace(nextPath);
+      router.refresh();
+      
+    } catch (err) {
+      console.error("[LoginClient] Unexpected error during login:", err);
+      setError("An unexpected error occurred. Please try again.");
+      setLoading(false);
     }
-
-    setLoading(false);
-
-    router.replace(nextPath);
-    router.refresh();
   }
 
   return (
@@ -119,7 +175,7 @@ export default function LoginClient({ nextPath }: { nextPath: string }) {
 
       <nav className="relative z-10 w-full">
         <div className="mx-auto flex h-28 max-w-7xl items-center justify-center px-6">
-          <div className="flex items-center gap-3">
+          <Link href="/" className="flex items-center gap-3">
             <div className="rounded-lg bg-primary p-1.5">
               <span className="material-symbols-outlined block text-xl leading-none font-bold text-background-dark">
                 account_balance_wallet
@@ -128,7 +184,7 @@ export default function LoginClient({ nextPath }: { nextPath: string }) {
             <h1 className="text-xl font-black tracking-tighter uppercase text-white">
               Profit<span className="text-primary">MRR</span>
             </h1>
-          </div>
+          </Link>
         </div>
       </nav>
 
