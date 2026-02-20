@@ -14,6 +14,14 @@ const categoryOptions = ["How-to Guide", "Case Study", "Checklist/Workbook", "Ma
 const toneOptions = ["Professional", "Bold", "Luxury", "Witty", "Academic"];
 const languageOptions = ["English (US)", "English (UK)", "Spanish", "French"];
 
+const AUTH_CACHE_TTL_MS = 2 * 60 * 1000;
+const AUTH_LOCAL_STORAGE_KEY = "pmrr_ebook_auth";
+
+type CachedEbookAuth = {
+  token: string;
+  expiresAt: number;
+};
+
 function makeIdempotencyKey() {
   if (typeof crypto !== "undefined" && "randomUUID" in crypto) {
     return `ebook_${crypto.randomUUID()}`;
@@ -34,6 +42,54 @@ function statusClass(status: JobStatus) {
   if (status === "succeeded") return "border-emerald-500/30 bg-emerald-500/10 text-emerald-300";
   if (status === "failed" || status === "cancelled") return "border-rose-500/30 bg-rose-500/10 text-rose-300";
   return "border-primary/30 bg-primary/10 text-primary";
+}
+
+function readCachedEbookAuth(): CachedEbookAuth | null {
+  if (typeof window === "undefined") return null;
+
+  try {
+    const raw = window.localStorage.getItem(AUTH_LOCAL_STORAGE_KEY);
+    if (!raw) return null;
+
+    const parsed = JSON.parse(raw) as Partial<CachedEbookAuth>;
+    if (!parsed?.token || typeof parsed.expiresAt !== "number") return null;
+
+    if (parsed.expiresAt <= Date.now()) {
+      window.localStorage.removeItem(AUTH_LOCAL_STORAGE_KEY);
+      return null;
+    }
+
+    return {
+      token: parsed.token,
+      expiresAt: parsed.expiresAt,
+    };
+  } catch {
+    return null;
+  }
+}
+
+function writeCachedEbookAuth(token: string) {
+  if (typeof window === "undefined") return;
+
+  const payload: CachedEbookAuth = {
+    token,
+    expiresAt: Date.now() + AUTH_CACHE_TTL_MS,
+  };
+
+  try {
+    window.localStorage.setItem(AUTH_LOCAL_STORAGE_KEY, JSON.stringify(payload));
+  } catch {
+    // ignore storage failures
+  }
+}
+
+function clearCachedEbookAuth() {
+  if (typeof window === "undefined") return;
+  try {
+    window.localStorage.removeItem(AUTH_LOCAL_STORAGE_KEY);
+  } catch {
+    // ignore
+  }
 }
 
 export default function CreateEbooksPage() {
@@ -115,6 +171,14 @@ export default function CreateEbooksPage() {
   async function resolveAccessTokenForGenerate() {
     const supabase = await createSupabaseBrowserClient();
 
+    const cached = readCachedEbookAuth();
+    if (cached?.token) {
+      return {
+        supabase,
+        accessToken: cached.token,
+      };
+    }
+
     const {
       data: { session: initialSession },
     } = await supabase.auth.getSession();
@@ -125,6 +189,7 @@ export default function CreateEbooksPage() {
       const now = Math.floor(Date.now() / 1000);
 
       if (expiresAt > now + 60) {
+        writeCachedEbookAuth(initialSession.access_token);
         return {
           supabase,
           accessToken: initialSession.access_token,
@@ -135,6 +200,7 @@ export default function CreateEbooksPage() {
     // If expired or missing, try to refresh immediately
     const { data: refreshed } = await supabase.auth.refreshSession();
     if (refreshed.session?.access_token) {
+      writeCachedEbookAuth(refreshed.session.access_token);
       return {
         supabase,
         accessToken: refreshed.session.access_token,
@@ -149,6 +215,7 @@ export default function CreateEbooksPage() {
     if (user?.id) {
       const { data: finalSession } = await supabase.auth.getSession();
       if (finalSession.session?.access_token) {
+        writeCachedEbookAuth(finalSession.session.access_token);
         return {
           supabase,
           accessToken: finalSession.session.access_token,
@@ -266,11 +333,23 @@ export default function CreateEbooksPage() {
       accessToken: authContext.accessToken,
     });
 
+    if (res.ok && data?.job_id) {
+      if (authContext.accessToken) {
+        writeCachedEbookAuth(authContext.accessToken);
+      }
+    }
+
     // One-time recovery for edge cases where auth cookies/token rotate between
     // submit and API request handling.
     if (res.status === 401) {
+      clearCachedEbookAuth();
+
       const { data: refreshed } = await authContext.supabase.auth.refreshSession();
       const retryToken = refreshed.session?.access_token ?? null;
+
+      if (retryToken) {
+        writeCachedEbookAuth(retryToken);
+      }
 
       const retried = await postCreateJob({
         payload,
@@ -287,6 +366,21 @@ export default function CreateEbooksPage() {
         });
         res = cookieFallback.res;
         data = cookieFallback.data;
+      }
+
+      // Final fallback for Cloudflare/worker contexts where cookie auth and
+      // browser Supabase state both fail: use server-issued short-lived token
+      // from previous successful /api/auth/login (stored client-side).
+      if (res.status === 401) {
+        const fallback = readCachedEbookAuth();
+        if (fallback?.token) {
+          const cachedRetry = await postCreateJob({
+            payload,
+            accessToken: fallback.token,
+          });
+          res = cachedRetry.res;
+          data = cachedRetry.data;
+        }
       }
     }
 
