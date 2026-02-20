@@ -6,35 +6,52 @@ import { useState, useCallback } from "react";
 
 import { createSupabaseBrowserClient } from "@/lib/supabase/browser";
 
-const MAX_COOKIE_VERIFY_ATTEMPTS = 5;
-const COOKIE_VERIFY_DELAY_MS = 200;
+const MAX_COOKIE_VERIFY_ATTEMPTS = 8;
+const COOKIE_VERIFY_DELAY_MS = 250;
 
-/**
- * Verifies that Supabase auth cookies exist in the browser.
- * Returns true if any sb-* cookie is found.
- */
-function verifySupabaseCookiesExist(): boolean {
-  return document.cookie.split(";").some((cookie) => {
-    const name = cookie.trim().split("=")[0];
-    return name?.startsWith("sb-");
-  });
+function hasLocalStorageSession(projectRef: string): boolean {
+  if (typeof window === "undefined") return false;
+  try {
+    const key = `sb-${projectRef}-auth-token`;
+    const raw = window.localStorage.getItem(key);
+    return !!raw;
+  } catch {
+    return false;
+  }
+}
+
+function getSupabaseProjectRefFromUrl(supabaseUrl: string | undefined): string | null {
+  if (!supabaseUrl) return null;
+  try {
+    const host = new URL(supabaseUrl).host;
+    const first = host.split(".")[0];
+    return first || null;
+  } catch {
+    return null;
+  }
 }
 
 /**
- * Waits for Supabase cookies to appear in the browser with retry logic.
- * Cloudflare Pages can have delays in cookie persistence.
+ * Waits for browser session persistence with retry logic.
+ * Supabase SSR browser client may persist into localStorage and/or cookie-backed
+ * storage depending on runtime behavior.
  */
-async function waitForCookies(maxAttempts = MAX_COOKIE_VERIFY_ATTEMPTS): Promise<boolean> {
+async function waitForBrowserSessionPersistence(
+  input: { projectRef: string | null },
+  maxAttempts = MAX_COOKIE_VERIFY_ATTEMPTS,
+): Promise<boolean> {
   for (let attempt = 0; attempt < maxAttempts; attempt++) {
     await new Promise((resolve) => setTimeout(resolve, COOKIE_VERIFY_DELAY_MS));
-    
-    if (verifySupabaseCookiesExist()) {
-      console.info("[LoginClient] Cookies verified on attempt", attempt + 1);
+
+    const hasSessionInLocalStorage = input.projectRef ? hasLocalStorageSession(input.projectRef) : false;
+
+    if (hasSessionInLocalStorage) {
+      console.info("[LoginClient] Browser session persistence verified on attempt", attempt + 1);
       return true;
     }
   }
-  
-  console.warn("[LoginClient] Cookies not found after", maxAttempts, "attempts");
+
+  console.warn("[LoginClient] Browser session persistence not found after", maxAttempts, "attempts");
   return false;
 }
 
@@ -46,6 +63,8 @@ export default function LoginClient({ nextPath }: { nextPath: string }) {
   const [remember, setRemember] = useState(true);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  const projectRef = getSupabaseProjectRefFromUrl(process.env.NEXT_PUBLIC_SUPABASE_URL);
 
   const resolveEmail = useCallback(async (inputIdentifier: string): Promise<string | null> => {
     // First, try server-side username resolution
@@ -96,8 +115,9 @@ export default function LoginClient({ nextPath }: { nextPath: string }) {
         return;
       }
 
-      // Step 3: ALWAYS use browser signInWithPassword to ensure cookies are created
-      // This is the KEY fix - setSession() doesn't persist cookies reliably on Cloudflare Pages
+      // Step 3: ALWAYS use browser signInWithPassword.
+      // In this architecture the browser session is localStorage-backed by default,
+      // while server-side session auth is established by /api/auth/login.
       console.info("[LoginClient] Starting browser authentication for:", resolvedEmail);
       
       const { error: signInError } = await supabase.auth.signInWithPassword({
@@ -112,13 +132,13 @@ export default function LoginClient({ nextPath }: { nextPath: string }) {
         return;
       }
 
-      // Step 4: Verify cookies were created with retry logic
-      console.info("[LoginClient] Sign-in succeeded, verifying cookies...");
-      const cookiesCreated = await waitForCookies();
+      // Step 4: Verify browser session persistence with retry logic
+      console.info("[LoginClient] Sign-in succeeded, verifying browser session persistence...");
+      const browserSessionPersisted = await waitForBrowserSessionPersistence({ projectRef });
 
-      if (!cookiesCreated) {
-        // Last resort: Try to force cookie creation by refreshing the session
-        console.warn("[LoginClient] Cookies not found, attempting session refresh...");
+      if (!browserSessionPersisted) {
+        // Last resort: Try to force session materialization by refreshing
+        console.warn("[LoginClient] Browser session persistence not found, attempting session refresh...");
         
         const { error: refreshError } = await supabase.auth.refreshSession();
         
@@ -128,12 +148,12 @@ export default function LoginClient({ nextPath }: { nextPath: string }) {
 
         // Final verification
         await new Promise((resolve) => setTimeout(resolve, 300));
-        const finalCheck = verifySupabaseCookiesExist();
+        const finalCheck = projectRef ? hasLocalStorageSession(projectRef) : false;
 
         if (!finalCheck) {
-          console.error("[LoginClient] CRITICAL: Cookies still not present after all attempts");
-          // Still proceed - the server login was successful, and the middleware
-          // might be able to handle auth via server-side cookies
+          console.error("[LoginClient] CRITICAL: Browser session persistence still missing after all attempts");
+          // Still proceed: server-side auth cookie from /api/auth/login exists and
+          // API routes can authenticate via cookie context.
         }
       }
 
